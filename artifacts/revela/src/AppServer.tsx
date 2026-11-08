@@ -481,7 +481,7 @@ function AppServer() {
 
     <Modal open={dialog === 'packs'} title="Comprar chances" onClose={closeDialog} testId="dialog-packs">
       <p className="sub">{pendingCell !== null
-        ? `Você está sem chances. Escolha um pacote para revelar a célula #${pendingCell + 1}.`
+        ? 'Você está sem chances. Escolha um pacote para adicionar mais chances e revelar a célula escolhida.'
         : 'Cada chance revela uma célula.'}</p>
       <fieldset className="pack-grid" data-testid="list-packs">
         <legend className="sr-only">Selecione um pacote de chances</legend>
@@ -551,7 +551,7 @@ function AppServer() {
           <button className="btn full" id="copy" type="button" disabled={order.status !== 'pending' || !order.payload} onClick={copyPix} data-testid="button-copy-pix">{copyLabel}</button>
           {paymentStatusError && <p className="hint" role="status" data-testid="text-payment-check-error">{paymentStatusError}</p>}
           <p className="hint" id="hint" data-testid="text-payment-hint">
-            {order.status === 'pending' ? `${order.cellId !== null ? `A célula #${order.cellId + 1} está reservada enquanto o tempo corre e será revelada ao pagar. ` : ''}Fechar esta janela não cancela o pedido. A confirmação é consultada diretamente na Efí.` :
+            {order.status === 'pending' ? `${order.cellId !== null ? 'A célula escolhida está reservada enquanto o pagamento estiver pendente e será revelada após a confirmação. ' : ''}Fechar esta janela não cancela o pedido. O pagamento será confirmado automaticamente.` :
               order.status === 'paid' ? (order.cellId !== null ? 'Abrindo sua célula…' : 'Chances adicionadas.') :
               `O Pix expirou${order.cellId !== null ? ' e a célula foi liberada.' : '.'}`}
           </p>

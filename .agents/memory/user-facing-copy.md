@@ -5,6 +5,8 @@ description: Regra para textos visíveis aos usuários do Revelapix.
 
 Não exponha detalhes técnicos nem decisões internas nas mensagens da interface, incluindo referências a servidor, backend, banco de dados ou armazenamento de dados. Use instruções e status curtos, centrados no que a pessoa precisa fazer ou no resultado.
 
-**Why:** o usuário enfatizou que detalhes de implementação não fazem sentido para usuários finais e não devem aparecer na interface.
+Não mostre a numeração interna das células na interface. Quando for preciso referir-se ao alvo escolhido, use uma expressão como “célula escolhida”.
 
-**How to apply:** ao alterar textos de carregamento, formulários, erros ou confirmações, descreva a ação ou o resultado de forma direta; não explique decisões internas de implementação.
+**Why:** o usuário enfatizou que detalhes de implementação não fazem sentido para usuários finais, e que a numeração das células não é visível aos clientes.
+
+**How to apply:** ao alterar textos de carregamento, formulários, erros ou confirmações, descreva a ação ou o resultado de forma direta, sem explicar decisões internas nem expor números de células.

@@ -5,4 +5,4 @@
 - [Hospedagem externa](deployment-hosting.md) — decisão do projeto: interface na Vercel, API Express no Railway, mantendo o monorepo pnpm.
 - [Marca do produto](product-brand.md) — o nome público da plataforma é Revelapix; preserve identificadores técnicos legados nas integrações.
 - [Autenticação somente por email](email-only-auth.md) — mantenha o Google OAuth desativado e não restaure a opção sem pedido explícito.
-- [Mensagens para usuários](user-facing-copy.md) — evite detalhes técnicos e decisões internas nas mensagens da interface; prefira instruções e status diretos.
+- [Mensagens para usuários](user-facing-copy.md) — evite detalhes técnicos e decisões internas; não exponha numeração de células que usuários não veem.
