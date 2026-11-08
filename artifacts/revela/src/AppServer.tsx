@@ -578,6 +578,7 @@ function AppServer() {
     </Modal>
 
     <Modal open={dialog === 'redeem'} title={redeemDone ? 'Resgate solicitado' : 'Resgatar saldo'} onClose={closeDialog} testId="dialog-redeem">
+      {!redeemDone && <p className="hint">Informe a chave Pix e o CPF para solicitar o resgate.</p>}
       {redeemDone ? <div className="done">
         <div className="ok"><Check className="icon"/></div>
         <p className="sub">Sua solicitação de {brl.format(redeemDone.amountCents / 100)} para a chave Pix {redeemDone.maskedPixKey} foi registrada. Status: {redemptionStatusLabels[redeemDone.status]}.</p>
@@ -589,7 +590,6 @@ function AppServer() {
         </div>
         <label className="field">Chave Pix<input className="input" value={redeemKey} onChange={e => setRedeemKey(redeemType === 'cpf' ? maskCpf(e.target.value) : redeemType === 'phone' ? maskPhone(e.target.value) : e.target.value)} placeholder={KEY_OPTIONS.find(x => x.id === redeemType)?.ph} inputMode={KEY_OPTIONS.find(x => x.id === redeemType)?.mode as InputHTMLAttributes<HTMLInputElement>['inputMode']} autoComplete="off" autoCapitalize="off" spellCheck={false} data-testid="input-pix-key"/></label>
         <label className="field">CPF do titular da chave<input className="input" inputMode="numeric" autoComplete="off" placeholder="000.000.000-00" maxLength={14} value={redeemCpf} onChange={e => setRedeemCpf(maskCpf(e.target.value))} data-testid="input-holder-cpf"/></label>
-        <p className="hint">Informe a chave Pix e o CPF para solicitar o resgate. Esses dados não serão guardados após a solicitação.</p>
         {redeemError && <ErrorMessage testId="error-redeem">{redeemError}</ErrorMessage>}
         <button className="btn full" type="submit" disabled={redeemBusy} data-testid="button-submit-redeem">{redeemBusy ? 'Enviando solicitação…' : 'Confirmar resgate'}</button>
       </form>}
