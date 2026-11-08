@@ -99,9 +99,10 @@ function AppServer() {
   const [passwordBusy, setPasswordBusy] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(() => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false);
   const [sparkId, setSparkId] = useState<number | null>(null);
-  const [revealId, setRevealId] = useState<number | null>(null);
+  const [revealingCellId, setRevealingCellId] = useState<number | null>(null);
   const lastExpiryRefresh = useRef<string | null>(null);
   const lastPaidOrderClose = useRef<string | null>(null);
+  const revealInFlight = useRef(false);
 
   const user = snapshot?.user ?? null;
   const cells = snapshot?.cells ?? [];
@@ -256,15 +257,12 @@ function AppServer() {
   };
   const showReveal = (cellId: number) => {
     if (reducedMotion) return;
-    setRevealId(cellId);
-    window.setTimeout(() => {
-      setRevealId(current => current === cellId ? null : current);
-      setSparkId(cellId);
-      window.setTimeout(() => setSparkId(current => current === cellId ? null : current), 650);
-    }, 380);
+    setSparkId(cellId);
+    window.setTimeout(() => setSparkId(current => current === cellId ? null : current), 650);
   };
 
   const onCell = async (cell: CellState) => {
+    if (revealInFlight.current) return;
     if (cell.phase === 'reserved') {
       if (order?.status === 'pending' && order.cellId === cell.id) setDialog('pix');
       return;
@@ -274,6 +272,8 @@ function AppServer() {
       openAuth('in', 'Entre na sua conta para revelar células.');
       return;
     }
+    revealInFlight.current = true;
+    setRevealingCellId(cell.id);
     try {
       acceptSnapshot(await revealCell(cell.id));
       showReveal(cell.id);
@@ -283,6 +283,9 @@ function AppServer() {
         return;
       }
       setLoadError(messageFrom(error));
+    } finally {
+      revealInFlight.current = false;
+      setRevealingCellId(null);
     }
   };
 
@@ -461,7 +464,7 @@ function AppServer() {
         <p className="sub">Você ainda não revelou nenhuma célula.</p>
         <button className="btn" type="button" onClick={() => routeTo('all')} data-testid="button-see-all">Ver todas as células</button>
       </div>}
-      {!loading && snapshot && <CellGrid cells={cells} view={view} reducedMotion={reducedMotion} sparkId={sparkId} revealId={revealId} onCell={onCell} onRedeem={openRedeem} onCancelRedemption={onCancelRedemption}/>}
+      {!loading && snapshot && <CellGrid cells={cells} view={view} reducedMotion={reducedMotion} sparkId={sparkId} revealingCellId={revealingCellId} onCell={onCell} onRedeem={openRedeem} onCancelRedemption={onCancelRedemption}/>}
     </main>
 
     <Modal open={dialog === 'auth'} title={authMode === 'up' ? 'Criar conta' : 'Entrar'} onClose={closeDialog} testId="dialog-auth">

@@ -3,8 +3,8 @@ import { Check, Clock, Gift } from 'lucide-react';
 import type { CellState } from '@workspace/api-client-react';
 import { brl, formatTime, redemptionStatusLabels } from '../domain/revela';
 
-type Props = { cells: CellState[]; view: 'all' | 'mine'; reducedMotion: boolean; sparkId: number | null; revealId: number | null; onCell: (cell: CellState) => void; onRedeem: (cell: CellState, button: HTMLButtonElement) => void; onCancelRedemption: (cellId: number) => void };
-export function CellGrid({ cells, view, reducedMotion, sparkId, revealId, onCell, onRedeem, onCancelRedemption }: Props) {
+type Props = { cells: CellState[]; view: 'all' | 'mine'; reducedMotion: boolean; sparkId: number | null; revealingCellId: number | null; onCell: (cell: CellState) => void; onRedeem: (cell: CellState, button: HTMLButtonElement) => void; onCancelRedemption: (cellId: number) => void };
+export function CellGrid({ cells, view, reducedMotion, sparkId, revealingCellId, onCell, onRedeem, onCancelRedemption }: Props) {
   const [now, setNow] = useState(Date.now());
   const [pressedId, setPressedId] = useState<number | null>(null);
   const pressTimer = useRef<number | null>(null);
@@ -21,7 +21,7 @@ export function CellGrid({ cells, view, reducedMotion, sparkId, revealId, onCell
   const mine = cells.filter(cell => cell.isMine).length;
   const shown = view === 'all' ? cells : cells.filter(cell => cell.isMine);
   const startPress = (cellId: number, phase: CellState['phase'], event: ReactPointerEvent<HTMLDivElement>) => {
-    if (phase === 'open' || !event.isPrimary || event.button !== 0) return;
+    if (phase === 'open' || revealingCellId !== null || !event.isPrimary || event.button !== 0) return;
     if (pressTimer.current !== null) window.clearTimeout(pressTimer.current);
     if (pulseTimer.current !== null) window.clearTimeout(pulseTimer.current);
     setPressedId(null);
@@ -78,6 +78,8 @@ export function CellGrid({ cells, view, reducedMotion, sparkId, revealId, onCell
     <div className={`grid${view === 'mine' ? ' only-mine' : ''}`} role="grid" aria-label="Grade de células" onKeyDown={keyHandler} data-testid="grid-cells">
       {cells.map(cell => {
         const isMine = cell.isMine;
+        const isRevealing = cell.phase === 'closed' && revealingCellId === cell.id;
+        const revealPending = revealingCellId !== null;
         const left = cell.reservedUntil ? Date.parse(cell.reservedUntil) - now : 0;
         const item = cell.item;
         const redemptionStatus = isMine && cell.redemptionStatus
@@ -89,8 +91,10 @@ export function CellGrid({ cells, view, reducedMotion, sparkId, revealId, onCell
           || cell.redemptionStatus === 'processing';
         const canCancel = isMine && (cell.redemptionStatus === 'requested' || cell.redemptionStatus === 'under_review');
         const cannotRedeem = cell.redeemed || redemptionPending || cell.redemptionStatus === 'redeemed';
-        return <div key={cell.id} className={`cell${pressedId === cell.id ? ' down' : ''}${cell.phase === 'open' ? ' open' : ''}${cell.phase === 'reserved' ? ' reserved' : ''}${isMine ? ' mine' : ''}`}
-          role={cell.phase === 'open' ? 'group' : 'button'} aria-label={cell.phase === 'open' ? `Célula ${cell.id + 1} revelada${redemptionStatus ? `. ${redemptionStatus}` : ''}` : cell.phase === 'reserved' ? `Célula ${cell.id + 1} reservada, abrir o Pix` : `Revelar célula ${cell.id + 1}`}
+        return <div key={cell.id} className={`cell${pressedId === cell.id ? ' down' : ''}${cell.phase === 'open' ? ' open' : ''}${cell.phase === 'reserved' ? ' reserved' : ''}${isRevealing ? ' revealing' : ''}${isMine ? ' mine' : ''}`}
+          role={cell.phase === 'open' ? 'group' : 'button'} aria-label={isRevealing ? `Revelando célula ${cell.id + 1}` : cell.phase === 'open' ? `Célula ${cell.id + 1} revelada${redemptionStatus ? `. ${redemptionStatus}` : ''}` : cell.phase === 'reserved' ? `Célula ${cell.id + 1} reservada, abrir o Pix` : `Revelar célula ${cell.id + 1}`}
+          aria-disabled={cell.phase !== 'open' && revealPending}
+          aria-busy={isRevealing}
           tabIndex={cell.id === (shown[0]?.id ?? 0) ? 0 : -1}
           onFocus={event => event.currentTarget.parentElement?.querySelectorAll<HTMLElement>('.cell').forEach(item => { item.tabIndex = item === event.currentTarget ? 0 : -1; })}
           onPointerDown={event => startPress(cell.id, cell.phase, event)}
@@ -98,9 +102,9 @@ export function CellGrid({ cells, view, reducedMotion, sparkId, revealId, onCell
           onPointerCancel={() => cancelPress(cell.id)}
           onPointerLeave={event => { if (event.buttons) cancelPress(cell.id); }}
           onClick={() => onCell(cell)} data-testid={`cell-${cell.id + 1}`}>
-          {cell.phase === 'closed' && <div className="box"><Gift className="icon"/></div>}
+          {cell.phase === 'closed' && <div className="box"><Gift className="icon"/>{isRevealing && <span className="reveal-message">Revelando…</span>}</div>}
           {cell.phase === 'reserved' && <div className="hold"><Clock className="icon"/><span className="t">{formatTime(Math.max(0, left))}</span></div>}
-          {cell.phase === 'open' && (revealId === cell.id && !reducedMotion ? <div className="box shake"><Gift className="icon"/></div> : <>
+          {cell.phase === 'open' && <>
             <div className={`prize${redemptionStatus ? ' has-redemption-status' : ''}`}>
               {item?.type === 'image' ? <img className={item.imageUrl ? undefined : 'brand-placeholder'} src={item.imageUrl ?? '/favicon.svg'} alt={item.name} draggable={false}/> :
                 <div className="inner">{item?.type === 'pix' && item.valueCents !== null ? <><div className="stat-value">{brl.format(item.valueCents / 100)}</div><div className="stat-label">Pix</div><button type="button" className="btn" disabled={!isMine || cannotRedeem} onClick={e => { e.stopPropagation(); onRedeem(cell, e.currentTarget); }} data-testid={`button-redeem-${cell.id + 1}`}>{cannotRedeem ? redemptionStatusLabels[cell.redemptionStatus ?? 'redeemed'] : cell.redemptionStatus ? 'Solicitar novamente' : 'Resgatar'}</button>{canCancel && <button type="button" className="link cancel-redemption" onClick={e => { e.stopPropagation(); onCancelRedemption(cell.id); }} data-testid={`button-cancel-redemption-${cell.id + 1}`}>Cancelar</button>}</> : null}
@@ -108,7 +112,7 @@ export function CellGrid({ cells, view, reducedMotion, sparkId, revealId, onCell
               {redemptionStatus && <span className="redemption-status">{redemptionStatus}</span>}
             </div>
             {!reducedMotion && sparkId === cell.id && Array.from({ length: 8 }, (_, i) => <span key={i} className="spark" style={{ '--a': `${i * 45}deg` } as CSSProperties}/>)}
-          </>)}
+          </>}
         </div>;
       })}
     </div>
