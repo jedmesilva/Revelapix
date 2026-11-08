@@ -30,7 +30,7 @@ function dateTime(value: string): string {
 
 function transactionLabel(transaction: AdminCashTransaction): string {
   if (transaction.type === 'redemption_payout') return 'Resgate concluído';
-  return transaction.isTest ? 'Compra simulada' : 'Compra de pacote';
+  return transaction.isTest ? 'Compra fora do caixa real' : 'Compra de pacote';
 }
 
 export function AdminFinancePanel() {
@@ -77,7 +77,7 @@ export function AdminFinancePanel() {
   };
 
   return <div className="admin-panel" data-testid="panel-admin-finance">
-    <p className="sub">Valores em reais. Somente compras confirmadas fora do modo de teste e resgates concluídos entram no caixa real.</p>
+    <p className="sub">Valores em reais. Somente compras confirmadas em produção e resgates concluídos entram no caixa real.</p>
     {error && <p className="err" role="alert" data-testid="error-admin-finance">{error}</p>}
     {loading && !data
       ? <p className="admin-empty" role="status">Carregando financeiro…</p>
@@ -97,7 +97,7 @@ export function AdminFinancePanel() {
           </div>
         </div>
         <p className="admin-test-note" data-testid="value-test-purchases">
-          Compras simuladas, fora do caixa real: {brl.format(data.testPurchaseCents / 100)}
+          Compras fora do caixa real: {brl.format(data.testPurchaseCents / 100)}
         </p>
         <p className="admin-warning">O Revela não envia Pix. Marque um resgate como concluído somente depois de fazer a transferência por fora do app.</p>
 
