@@ -1,16 +1,59 @@
-import { useEffect, useState, type CSSProperties, type KeyboardEvent } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react';
 import { Check, Clock, Gift } from 'lucide-react';
 import { art, brl, formatTime, iconPaths, prizeKind, prizeValue, type Cell, type PixOrder } from '../domain/revela';
 
 type Props = { cells: Cell[]; user: string | null; order: PixOrder | null; view: 'all' | 'mine'; reducedMotion: boolean; sparkId: number | null; revealId: number | null; onCell: (cell: Cell) => void; onRedeem: (cell: Cell, button: HTMLButtonElement) => void };
 export function CellGrid({ cells, user, order, view, reducedMotion, sparkId, revealId, onCell, onRedeem }: Props) {
   const [now, setNow] = useState(Date.now());
+  const [pressedId, setPressedId] = useState<number | null>(null);
+  const pressTimer = useRef<number | null>(null);
+  const pulseTimer = useRef<number | null>(null);
+  const activeCell = useRef<number | null>(null);
   useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), 250);
     return () => window.clearInterval(id);
   }, []);
+  useEffect(() => () => {
+    if (pressTimer.current !== null) window.clearTimeout(pressTimer.current);
+    if (pulseTimer.current !== null) window.clearTimeout(pulseTimer.current);
+  }, []);
   const mine = cells.filter(cell => cell.phase === 'open' && cell.owner === user).length;
   const shown = view === 'all' ? cells : cells.filter(cell => cell.phase === 'open' && cell.owner === user);
+  const startPress = (cellId: number, phase: Cell['phase'], event: ReactPointerEvent<HTMLDivElement>) => {
+    if (phase === 'open' || !event.isPrimary || event.button !== 0) return;
+    if (pressTimer.current !== null) window.clearTimeout(pressTimer.current);
+    if (pulseTimer.current !== null) window.clearTimeout(pulseTimer.current);
+    setPressedId(null);
+    activeCell.current = cellId;
+    pressTimer.current = window.setTimeout(() => {
+      pressTimer.current = null;
+      setPressedId(cellId);
+    }, 70);
+  };
+  const finishPress = (cellId: number) => {
+    if (activeCell.current !== cellId) return;
+    if (pressTimer.current !== null) {
+      window.clearTimeout(pressTimer.current);
+      pressTimer.current = null;
+      setPressedId(cellId);
+      pulseTimer.current = window.setTimeout(() => {
+        setPressedId(current => current === cellId ? null : current);
+        pulseTimer.current = null;
+      }, 90);
+    } else {
+      setPressedId(current => current === cellId ? null : current);
+    }
+    activeCell.current = null;
+  };
+  const cancelPress = (cellId: number) => {
+    if (activeCell.current !== cellId) return;
+    if (pressTimer.current !== null) window.clearTimeout(pressTimer.current);
+    if (pulseTimer.current !== null) window.clearTimeout(pulseTimer.current);
+    pressTimer.current = null;
+    pulseTimer.current = null;
+    activeCell.current = null;
+    setPressedId(current => current === cellId ? null : current);
+  };
   useEffect(() => {
     const firstId = shown[0]?.id;
     document.querySelectorAll<HTMLElement>('.cell').forEach(cell => {
@@ -36,10 +79,14 @@ export function CellGrid({ cells, user, order, view, reducedMotion, sparkId, rev
         const isMine = cell.phase === 'open' && cell.owner === user;
         const left = order?.k === cell.id ? order.end - now : 0;
         const kind = prizeKind(cell.id);
-        return <div key={cell.id} className={`cell${cell.phase === 'open' ? ' open' : ''}${cell.phase === 'reserved' ? ' reserved' : ''}${isMine ? ' mine' : ''}`}
+        return <div key={cell.id} className={`cell${pressedId === cell.id ? ' down' : ''}${cell.phase === 'open' ? ' open' : ''}${cell.phase === 'reserved' ? ' reserved' : ''}${isMine ? ' mine' : ''}`}
           role={cell.phase === 'open' ? 'group' : 'button'} aria-label={cell.phase === 'open' ? `Célula ${cell.id + 1} revelada` : cell.phase === 'reserved' ? `Célula ${cell.id + 1} reservada, abrir o Pix` : `Revelar célula ${cell.id + 1}`}
           tabIndex={cell.id === (shown[0]?.id ?? 0) ? 0 : -1}
           onFocus={event => event.currentTarget.parentElement?.querySelectorAll<HTMLElement>('.cell').forEach(item => { item.tabIndex = item === event.currentTarget ? 0 : -1; })}
+          onPointerDown={event => startPress(cell.id, cell.phase, event)}
+          onPointerUp={() => finishPress(cell.id)}
+          onPointerCancel={() => cancelPress(cell.id)}
+          onPointerLeave={event => { if (event.buttons) cancelPress(cell.id); }}
           onClick={() => onCell(cell)} data-testid={`cell-${cell.id + 1}`}>
           {cell.phase === 'closed' && <div className="box"><Gift className="icon"/></div>}
           {cell.phase === 'reserved' && <div className="hold"><Clock className="icon"/><span className="t">{formatTime(Math.max(0, left))}</span></div>}
