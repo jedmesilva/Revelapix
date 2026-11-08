@@ -63,7 +63,7 @@ export async function getRevelaState(user: User | null) {
     .select()
     .from(chancePlansTable)
     .where(eq(chancePlansTable.isActive, true))
-    .orderBy(asc(chancePlansTable.sortOrder), asc(chancePlansTable.chances));
+    .orderBy(asc(chancePlansTable.chances));
   const latestOrder = user
     ? await db
         .select()
