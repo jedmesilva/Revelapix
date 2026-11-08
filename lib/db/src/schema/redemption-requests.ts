@@ -24,6 +24,6 @@ export const redemptionRequestsTable = pgTable(
       .on(table.cellId)
       .where(sql`${table.status} in ('requested', 'under_review', 'approved', 'processing')`),
   ],
-);
+).enableRLS();
 
 export type RedemptionRequest = typeof redemptionRequestsTable.$inferSelect;

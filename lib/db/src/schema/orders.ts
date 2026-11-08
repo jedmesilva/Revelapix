@@ -17,4 +17,4 @@ export const ordersTable = pgTable("revela_orders", {
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   paidAt: timestamp("paid_at", { withTimezone: true }),
-});
+}).enableRLS();

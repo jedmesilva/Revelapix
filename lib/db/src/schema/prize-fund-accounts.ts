@@ -24,6 +24,6 @@ export const prizeFundAccountsTable = pgTable(
       sql`${table.pendingAwardsCents} <= ${table.awardedCents}`,
     ),
   ],
-);
+).enableRLS();
 
 export type PrizeFundAccount = typeof prizeFundAccountsTable.$inferSelect;

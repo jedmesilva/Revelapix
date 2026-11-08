@@ -30,6 +30,6 @@ export const cellsTable = pgTable(
     reservedUntil: timestamp("reserved_until", { withTimezone: true }),
   },
   (table) => [index("revela_cells_item_id_idx").on(table.itemId)],
-);
+).enableRLS();
 
 export type Cell = typeof cellsTable.$inferSelect;

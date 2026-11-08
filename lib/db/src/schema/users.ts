@@ -16,6 +16,6 @@ export const usersTable = pgTable(
     uniqueIndex("revela_users_email_unique").on(table.email),
     uniqueIndex("revela_users_google_subject_unique").on(table.googleSubject),
   ],
-);
+).enableRLS();
 
 export type User = typeof usersTable.$inferSelect;

@@ -16,6 +16,6 @@ export const chancePlansTable = pgTable(
     check("revela_chance_plans_chances_positive", sql`${table.chances} > 0`),
     check("revela_chance_plans_price_positive", sql`${table.priceCents} > 0`),
   ],
-);
+).enableRLS();
 
 export type ChancePlan = typeof chancePlansTable.$inferSelect;

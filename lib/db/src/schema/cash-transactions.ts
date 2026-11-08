@@ -46,6 +46,6 @@ export const cashTransactionsTable = pgTable(
       .where(sql`${table.redemptionRequestId} is not null`),
     index("revela_cash_transactions_created_idx").on(table.createdAt),
   ],
-);
+).enableRLS();
 
 export type CashTransaction = typeof cashTransactionsTable.$inferSelect;

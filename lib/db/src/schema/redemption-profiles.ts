@@ -8,6 +8,6 @@ export const redemptionProfilesTable = pgTable("revela_redemption_profiles", {
   authTag: text("auth_tag").notNull(),
   encryptionVersion: integer("encryption_version").notNull().default(1),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}).enableRLS();
 
 export type RedemptionProfileRecord = typeof redemptionProfilesTable.$inferSelect;

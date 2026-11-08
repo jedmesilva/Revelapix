@@ -39,6 +39,6 @@ export const itemsTable = pgTable(
       )`,
     ),
   ],
-);
+).enableRLS();
 
 export type Item = typeof itemsTable.$inferSelect;

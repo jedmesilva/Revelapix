@@ -14,6 +14,6 @@ export const redemptionRequestEventsTable = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [index("revela_redemption_request_events_request_idx").on(table.requestId, table.createdAt)],
-);
+).enableRLS();
 
 export type RedemptionRequestEvent = typeof redemptionRequestEventsTable.$inferSelect;

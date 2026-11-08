@@ -41,6 +41,6 @@ export const prizeAwardsTable = pgTable(
     uniqueIndex("revela_prize_awards_cell_unique").on(table.cellId),
     index("revela_prize_awards_test_status_idx").on(table.isTest, table.status),
   ],
-);
+).enableRLS();
 
 export type PrizeAward = typeof prizeAwardsTable.$inferSelect;
