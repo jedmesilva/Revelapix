@@ -4,3 +4,4 @@
 - [Catálogo de prêmios](item-catalog.md) — células apontam para itens Pix ou imagem; arquivos de imagem ficam no App Storage.
 - [Hospedagem externa](deployment-hosting.md) — decisão do projeto: interface na Vercel, API Express no Railway, mantendo o monorepo pnpm.
 - [Marca do produto](product-brand.md) — o nome público da plataforma é Revelapix; preserve identificadores técnicos legados nas integrações.
+- [Autenticação somente por email](email-only-auth.md) — mantenha o Google OAuth desativado e não restaure a opção sem pedido explícito.

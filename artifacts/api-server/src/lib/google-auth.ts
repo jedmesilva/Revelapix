@@ -15,7 +15,8 @@ export function getGoogleAuthConfig(): GoogleAuthConfig {
   const supabaseUrl = process.env.SUPABASE_URL?.trim() ?? "";
   const supabaseAnonKey = process.env.SUPABASE_ANON_KEY?.trim() ?? "";
   return {
-    enabled: Boolean(supabaseUrl && supabaseAnonKey),
+    enabled: process.env.GOOGLE_OAUTH_ENABLED?.trim().toLowerCase() === "true"
+      && Boolean(supabaseUrl && supabaseAnonKey),
     supabaseUrl,
     supabaseAnonKey,
   };

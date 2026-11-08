@@ -19,7 +19,7 @@ Plataforma de células reveláveis com contas, chances, cobranças Pix pela Efí
 - Enable the Efí application scopes `cob.write` and `cob.read`. The Pix key must belong to the authenticated Efí account.
 - Efí payment status is checked server-side by polling its API. Do not add a public webhook unless the hosting edge can enforce Efí's required mutual TLS.
 - Keep `SESSION_SECRET` stable while saved Pix/CPF profiles exist; changing it requires re-encrypting those profiles.
-- Google sign-in also requires `SUPABASE_URL` and `SUPABASE_ANON_KEY`. Enable Google in Supabase Auth and allow the app's origin as a redirect URL; Google credentials belong in the Supabase provider settings.
+- Email and password are the only authentication option currently exposed in the app. Google OAuth is disabled by default in the API; it requires `GOOGLE_OAUTH_ENABLED=true` plus Supabase configuration and an explicit frontend reintroduction to become usable. Keep the flag unset unless the user asks to re-enable it.
 
 ## Stack
 
@@ -38,7 +38,7 @@ Plataforma de células reveláveis com contas, chances, cobranças Pix pela Efí
 ## Data authority
 
 - Accounts, password hashes, sessions, chances, cell ownership, prize data, Pix orders, reservation expiry, and redemption eligibility are server-owned and persisted in PostgreSQL.
-- Google sign-in is validated by Supabase on the server, then linked to the app's PostgreSQL account by verified email and its provider identity.
+- Email/password sign-in is validated server-side, and auth state and sessions remain server-owned. Google-linked accounts are retained, but sign-in is disabled; users still logged in through Google can create a local password in account settings before ending their session.
 - Redemption requests are persisted with a status linked to the revealed cell; new requests start as `requested`, and the cell exposes its current redemption status only to its owner.
 - Cash movements are append-only and linked to a paid order or completed redemption. Test Pix purchases are recorded separately and never count as real cash; active redemption requests reserve funds but are not cash outflows.
 - Redemption status changes are validated on the server and recorded in an event history.

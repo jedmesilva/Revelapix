@@ -167,7 +167,8 @@ router.get("/auth/google", googleOAuthRateLimiter, async (req, res): Promise<voi
   res.setHeader("Referrer-Policy", "no-referrer");
   const config = getGoogleAuthConfig();
   if (!config.enabled) {
-    res.redirect(303, "/?googleAuthError=unavailable");
+    clearGoogleOAuthCookies(req, res);
+    res.sendStatus(404);
     return;
   }
 
@@ -199,11 +200,16 @@ router.get("/auth/google/callback", googleOAuthRateLimiter, async (req, res): Pr
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("Referrer-Policy", "no-referrer");
   const config = getGoogleAuthConfig();
+  if (!config.enabled) {
+    clearGoogleOAuthCookies(req, res);
+    res.sendStatus(404);
+    return;
+  }
   const code = typeof req.query.code === "string" ? req.query.code : "";
   const providerError = typeof req.query.error === "string" ? req.query.error : "";
-  if (!config.enabled || !code || providerError) {
+  if (!code || providerError) {
     clearGoogleOAuthCookies(req, res);
-    res.redirect(303, `/?googleAuthError=${config.enabled ? "failed" : "unavailable"}`);
+    res.redirect(303, "/?googleAuthError=failed");
     return;
   }
 
