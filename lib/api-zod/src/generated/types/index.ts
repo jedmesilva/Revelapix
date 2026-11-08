@@ -9,6 +9,7 @@
 export * from './cellState';
 export * from './cellStatePhase';
 export * from './cellStatePrizeKind';
+export * from './cellStateRedemptionStatus';
 export * from './chancePlan';
 export * from './changePasswordInput';
 export * from './createOrderInput';

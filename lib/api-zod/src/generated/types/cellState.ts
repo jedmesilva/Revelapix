@@ -7,6 +7,7 @@
  */
 import type { CellStatePhase } from './cellStatePhase';
 import type { CellStatePrizeKind } from './cellStatePrizeKind';
+import type { CellStateRedemptionStatus } from './cellStateRedemptionStatus';
 
 export interface CellState {
   /**
@@ -17,6 +18,8 @@ export interface CellState {
   phase: CellStatePhase;
   isMine: boolean;
   redeemed: boolean;
+  /** @nullable */
+  redemptionStatus: CellStateRedemptionStatus;
   /** @nullable */
   prizeValueCents: number | null;
   /** @nullable */

@@ -83,6 +83,9 @@ export async function getRevelaState(user: User | null) {
         phase: cell.phase,
         isMine,
         redeemed: isMine && cell.redeemed,
+        redemptionStatus: isMine
+          ? cell.redemptionStatus ?? (cell.redeemed ? "redeemed" : null)
+          : null,
         prizeValueCents: cell.phase === "open" ? cell.prizeValueCents : null,
         prizeKind: cell.phase === "open" ? cell.prizeKind : null,
         reservedUntil: cell.phase === "reserved" && cell.reservedUntil

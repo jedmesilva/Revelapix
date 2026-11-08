@@ -49,6 +49,7 @@ export const GetRevelaStateResponse = zod.object({
   "phase": zod.enum(['closed', 'reserved', 'open']),
   "isMine": zod.boolean(),
   "redeemed": zod.boolean(),
+  "redemptionStatus": zod.union([zod.literal('requested'),zod.literal('rejected'),zod.literal('cancelled'),zod.literal('under_review'),zod.literal('redeemed'),zod.literal(null)]).nullable(),
   "prizeValueCents": zod.number().int().nullable(),
   "prizeKind": zod.union([zod.literal('image'),zod.literal('stat'),zod.literal('icon'),zod.literal(null)]).nullable(),
   "reservedUntil": zod.coerce.date().nullable()
@@ -122,6 +123,7 @@ export const RegisterAccountResponse = zod.object({
   "phase": zod.enum(['closed', 'reserved', 'open']),
   "isMine": zod.boolean(),
   "redeemed": zod.boolean(),
+  "redemptionStatus": zod.union([zod.literal('requested'),zod.literal('rejected'),zod.literal('cancelled'),zod.literal('under_review'),zod.literal('redeemed'),zod.literal(null)]).nullable(),
   "prizeValueCents": zod.number().int().nullable(),
   "prizeKind": zod.union([zod.literal('image'),zod.literal('stat'),zod.literal('icon'),zod.literal(null)]).nullable(),
   "reservedUntil": zod.coerce.date().nullable()
@@ -191,6 +193,7 @@ export const LoginAccountResponse = zod.object({
   "phase": zod.enum(['closed', 'reserved', 'open']),
   "isMine": zod.boolean(),
   "redeemed": zod.boolean(),
+  "redemptionStatus": zod.union([zod.literal('requested'),zod.literal('rejected'),zod.literal('cancelled'),zod.literal('under_review'),zod.literal('redeemed'),zod.literal(null)]).nullable(),
   "prizeValueCents": zod.number().int().nullable(),
   "prizeKind": zod.union([zod.literal('image'),zod.literal('stat'),zod.literal('icon'),zod.literal(null)]).nullable(),
   "reservedUntil": zod.coerce.date().nullable()
@@ -267,6 +270,7 @@ export const LoginWithGoogleResponse = zod.object({
   "phase": zod.enum(['closed', 'reserved', 'open']),
   "isMine": zod.boolean(),
   "redeemed": zod.boolean(),
+  "redemptionStatus": zod.union([zod.literal('requested'),zod.literal('rejected'),zod.literal('cancelled'),zod.literal('under_review'),zod.literal('redeemed'),zod.literal(null)]).nullable(),
   "prizeValueCents": zod.number().int().nullable(),
   "prizeKind": zod.union([zod.literal('image'),zod.literal('stat'),zod.literal('icon'),zod.literal(null)]).nullable(),
   "reservedUntil": zod.coerce.date().nullable()
@@ -358,6 +362,7 @@ export const RevealCellResponse = zod.object({
   "phase": zod.enum(['closed', 'reserved', 'open']),
   "isMine": zod.boolean(),
   "redeemed": zod.boolean(),
+  "redemptionStatus": zod.union([zod.literal('requested'),zod.literal('rejected'),zod.literal('cancelled'),zod.literal('under_review'),zod.literal('redeemed'),zod.literal(null)]).nullable(),
   "prizeValueCents": zod.number().int().nullable(),
   "prizeKind": zod.union([zod.literal('image'),zod.literal('stat'),zod.literal('icon'),zod.literal(null)]).nullable(),
   "reservedUntil": zod.coerce.date().nullable()
@@ -428,6 +433,7 @@ export const CreateOrderResponse = zod.object({
   "phase": zod.enum(['closed', 'reserved', 'open']),
   "isMine": zod.boolean(),
   "redeemed": zod.boolean(),
+  "redemptionStatus": zod.union([zod.literal('requested'),zod.literal('rejected'),zod.literal('cancelled'),zod.literal('under_review'),zod.literal('redeemed'),zod.literal(null)]).nullable(),
   "prizeValueCents": zod.number().int().nullable(),
   "prizeKind": zod.union([zod.literal('image'),zod.literal('stat'),zod.literal('icon'),zod.literal(null)]).nullable(),
   "reservedUntil": zod.coerce.date().nullable()
@@ -490,6 +496,7 @@ export const SimulateOrderPaymentResponse = zod.object({
   "phase": zod.enum(['closed', 'reserved', 'open']),
   "isMine": zod.boolean(),
   "redeemed": zod.boolean(),
+  "redemptionStatus": zod.union([zod.literal('requested'),zod.literal('rejected'),zod.literal('cancelled'),zod.literal('under_review'),zod.literal('redeemed'),zod.literal(null)]).nullable(),
   "prizeValueCents": zod.number().int().nullable(),
   "prizeKind": zod.union([zod.literal('image'),zod.literal('stat'),zod.literal('icon'),zod.literal(null)]).nullable(),
   "reservedUntil": zod.coerce.date().nullable()
@@ -536,7 +543,7 @@ export const GetSavedRedemptionDetailsResponse = zod.object({
 
 
 /**
- * @summary Simulate redemption of an owned cell
+ * @summary Create a redemption request for an owned cell
  */
 export const redeemCellBodyCellIdMin = 0;
 export const redeemCellBodyCellIdMax = 83;
@@ -559,9 +566,10 @@ export const RedeemCellBody = zod.object({
 
 
 export const RedeemCellResponse = zod.object({
+  "requestId": zod.string().uuid(),
   "amountCents": zod.number().int().min(1),
   "maskedPixKey": zod.string(),
-  "status": zod.enum(['simulated'])
+  "status": zod.enum(['requested', 'rejected', 'cancelled', 'under_review', 'redeemed'])
 })
 
 

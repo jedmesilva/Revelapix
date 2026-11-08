@@ -8,6 +8,7 @@
 import type { RedemptionResultStatus } from './redemptionResultStatus';
 
 export interface RedemptionResult {
+  requestId: string;
   /** @minimum 1 */
   amountCents: number;
   maskedPixKey: string;

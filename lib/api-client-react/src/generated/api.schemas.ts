@@ -30,6 +30,20 @@ export const CellStatePhase = {
 /**
  * @nullable
  */
+export type CellStateRedemptionStatus = typeof CellStateRedemptionStatus[keyof typeof CellStateRedemptionStatus] | null;
+
+
+export const CellStateRedemptionStatus = {
+  requested: 'requested',
+  rejected: 'rejected',
+  cancelled: 'cancelled',
+  under_review: 'under_review',
+  redeemed: 'redeemed',
+} as const;
+
+/**
+ * @nullable
+ */
 export type CellStatePrizeKind = typeof CellStatePrizeKind[keyof typeof CellStatePrizeKind] | null;
 
 
@@ -48,6 +62,8 @@ export interface CellState {
   phase: CellStatePhase;
   isMine: boolean;
   redeemed: boolean;
+  /** @nullable */
+  redemptionStatus: CellStateRedemptionStatus;
   /** @nullable */
   prizeValueCents: number | null;
   /** @nullable */
@@ -207,10 +223,15 @@ export type RedemptionResultStatus = typeof RedemptionResultStatus[keyof typeof 
 
 
 export const RedemptionResultStatus = {
-  simulated: 'simulated',
+  requested: 'requested',
+  rejected: 'rejected',
+  cancelled: 'cancelled',
+  under_review: 'under_review',
+  redeemed: 'redeemed',
 } as const;
 
 export interface RedemptionResult {
+  requestId: string;
   /** @minimum 1 */
   amountCents: number;
   maskedPixKey: string;

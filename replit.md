@@ -32,5 +32,6 @@ Experiência demonstrativa de células reveláveis, com contas, chances, pedidos
 
 - Accounts, password hashes, sessions, chances, cell ownership, prize data, Pix orders, reservation expiry, and redemption eligibility are server-owned and persisted in PostgreSQL.
 - Google sign-in is validated by Supabase on the server, then linked to the app's PostgreSQL account by verified email and its provider identity.
+- Redemption requests are persisted with a status linked to the revealed cell; new requests start as `requested`, and the cell exposes its current redemption status only to its owner.
 - The browser holds only transient form, navigation, and animation state; it requests server state for rendering and cannot authorize business actions.
 - Pix payment and redemption are demonstrations only. Payment simulation is disabled in production; redemptions do not verify key ownership or transfer money.

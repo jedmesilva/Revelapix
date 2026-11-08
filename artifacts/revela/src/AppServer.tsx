@@ -27,7 +27,7 @@ import {
   simulateOrderPayment,
   ApiRequestError,
 } from './lib/api';
-import { brl, digits, formatTime, maskCpf, maskPhone, plural } from './domain/revela';
+import { brl, digits, formatTime, maskCpf, maskPhone, plural, redemptionStatusLabels } from './domain/revela';
 
 type View = 'all' | 'mine';
 type Dialog = 'none' | 'auth' | 'packs' | 'pix' | 'account' | 'redeem';
@@ -653,7 +653,7 @@ function AppServer() {
     <Modal open={dialog === 'redeem'} title={redeemDone ? 'Resgate solicitado' : 'Resgatar saldo'} onClose={closeDialog} testId="dialog-redeem">
       {redeemDone ? <div className="done">
         <div className="ok"><Check className="icon"/></div>
-        <p className="sub">A simulação registrou o resgate demonstrativo de {brl.format(redeemDone.amountCents / 100)} para a chave Pix {redeemDone.maskedPixKey}. Nenhuma transferência real ou verificação de titularidade foi feita.</p>
+        <p className="sub">Sua solicitação de {brl.format(redeemDone.amountCents / 100)} para a chave Pix {redeemDone.maskedPixKey} foi registrada. Status: {redemptionStatusLabels[redeemDone.status]}. Nenhuma transferência real ou verificação de titularidade foi feita.</p>
         <button className="btn full" type="button" onClick={closeDialog} data-testid="button-finish-redeem">Concluir</button>
       </div> : <form className="form" onSubmit={submitRedeem} noValidate>
         <div className="info"><div><small>Valor do resgate</small><span data-testid="value-redemption">{selectedRedeemCell?.prizeValueCents != null ? brl.format(selectedRedeemCell.prizeValueCents / 100) : ''}</span></div></div>

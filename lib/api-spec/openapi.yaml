@@ -229,7 +229,7 @@ paths:
     post:
       operationId: redeemCell
       tags: [cells]
-      summary: Simulate redemption of an owned cell
+      summary: Create a redemption request for an owned cell
       requestBody:
         required: true
         content:
@@ -237,8 +237,8 @@ paths:
             schema:
               $ref: "#/components/schemas/RedeemCellInput"
       responses:
-        "200":
-          description: Demonstration redemption recorded
+        "201":
+          description: Redemption request created
           content:
             application/json:
               schema:
@@ -269,12 +269,15 @@ components:
         hasPassword: { type: boolean }
     CellState:
       type: object
-      required: [id, phase, isMine, redeemed, prizeValueCents, prizeKind, reservedUntil]
+      required: [id, phase, isMine, redeemed, redemptionStatus, prizeValueCents, prizeKind, reservedUntil]
       properties:
         id: { type: integer, minimum: 0, maximum: 83 }
         phase: { type: string, enum: [closed, reserved, open] }
         isMine: { type: boolean }
         redeemed: { type: boolean }
+        redemptionStatus:
+          type: [string, "null"]
+          enum: [requested, rejected, cancelled, under_review, redeemed, null]
         prizeValueCents: { type: [integer, "null"] }
         prizeKind: { type: [string, "null"], enum: [image, stat, icon, null] }
         reservedUntil: { type: [string, "null"], format: date-time }
@@ -370,11 +373,12 @@ components:
         holderCpf: { type: string, minLength: 11, maxLength: 14 }
     RedemptionResult:
       type: object
-      required: [amountCents, maskedPixKey, status]
+      required: [requestId, amountCents, maskedPixKey, status]
       properties:
+        requestId: { type: string, format: uuid }
         amountCents: { type: integer, minimum: 1 }
         maskedPixKey: { type: string }
-        status: { type: string, enum: [simulated] }
+        status: { type: string, enum: [requested, rejected, cancelled, under_review, redeemed] }
     SavedRedemptionDetails:
       type: object
       required: [keyType, pixKey, holderCpf]

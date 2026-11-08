@@ -1141,7 +1141,7 @@ export const getRedeemCellUrl = () => {
 }
 
 /**
- * @summary Simulate redemption of an owned cell
+ * @summary Create a redemption request for an owned cell
  */
 export const redeemCell = async (redeemCellInput: RedeemCellInput, options?: Parameters<typeof customFetch>[1]): Promise<RedemptionResult> => {
 
@@ -1207,7 +1207,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type RedeemCellMutationVariables = {data: BodyType<RedeemCellInput>}
 
     /**
- * @summary Simulate redemption of an owned cell
+ * @summary Create a redemption request for an owned cell
  */
 export const useRedeemCell = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof redeemCell>>, TError,RedeemCellMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}

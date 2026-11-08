@@ -10,5 +10,9 @@ export type RedemptionResultStatus = typeof RedemptionResultStatus[keyof typeof 
 
 
 export const RedemptionResultStatus = {
-  simulated: 'simulated',
+  requested: 'requested',
+  rejected: 'rejected',
+  cancelled: 'cancelled',
+  under_review: 'under_review',
+  redeemed: 'redeemed',
 } as const;

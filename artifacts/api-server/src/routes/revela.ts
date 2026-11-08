@@ -24,6 +24,7 @@ import {
   db,
   ordersTable,
   redemptionProfilesTable,
+  redemptionRequestsTable,
   sessionsTable,
   usersTable,
 } from "@workspace/db";
@@ -573,18 +574,36 @@ router.post("/redemptions", async (req, res): Promise<void> => {
     pixKey: key.value,
     holderCpf,
   });
-  const [cell] = await db.transaction(async (tx) => {
+  const redemption = await db.transaction(async (tx) => {
     const [currentCell] = await tx.select().from(cellsTable)
       .where(eq(cellsTable.id, parsed.data.cellId))
       .for("update");
-    if (!currentCell || currentCell.phase !== "open" || currentCell.ownerUserId !== user.id || currentCell.redeemed) {
-      return [];
+    if (
+      !currentCell
+      || currentCell.phase !== "open"
+      || currentCell.ownerUserId !== user.id
+      || currentCell.redeemed
+      || currentCell.redemptionStatus === "requested"
+      || currentCell.redemptionStatus === "under_review"
+      || currentCell.redemptionStatus === "redeemed"
+    ) {
+      return null;
     }
-    const [redeemedCell] = await tx.update(cellsTable)
-      .set({ redeemed: true })
+    const [updatedCell] = await tx.update(cellsTable)
+      .set({ redemptionStatus: "requested" })
       .where(eq(cellsTable.id, currentCell.id))
       .returning();
-    if (!redeemedCell) return [];
+    if (!updatedCell) {
+      throw new Error("Could not update cell redemption status.");
+    }
+    const [request] = await tx.insert(redemptionRequestsTable)
+      .values({
+        userId: user.id,
+        cellId: currentCell.id,
+        amountCents: currentCell.prizeValueCents,
+        status: "requested",
+      })
+      .returning();
 
     const updatedAt = new Date();
     await tx.insert(redemptionProfilesTable)
@@ -600,19 +619,20 @@ router.post("/redemptions", async (req, res): Promise<void> => {
           updatedAt,
         },
       });
-    return [redeemedCell];
+    return { cell: updatedCell, request };
   });
-  if (!cell) {
+  if (!redemption) {
     sendError(res, 409, "Esta célula não está disponível para resgate.", "CELL_NOT_REDEEMABLE");
     return;
   }
 
   const result = {
-    amountCents: cell.prizeValueCents,
+    requestId: redemption.request.id,
+    amountCents: redemption.request.amountCents,
     maskedPixKey: maskPixKey(parsed.data.keyType, key.value),
-    status: "simulated" as const,
+    status: redemption.request.status,
   };
-  res.json(RedeemCellResponse.parse(result));
+  res.status(201).json(RedeemCellResponse.parse(result));
 });
 
 export default router;
