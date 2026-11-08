@@ -17,6 +17,7 @@ import {
   cellsTable,
 } from "@workspace/db";
 import { getSessionUser } from "../lib/auth";
+import { adminRedemptionUpdateRateLimiter } from "../middlewares/rate-limit";
 
 const router: IRouter = Router();
 
@@ -126,7 +127,7 @@ router.get("/admin/finance", async (req, res): Promise<void> => {
   }));
 });
 
-router.patch("/admin/redemptions/:requestId", async (req, res): Promise<void> => {
+router.patch("/admin/redemptions/:requestId", adminRedemptionUpdateRateLimiter, async (req, res): Promise<void> => {
   const admin = await requireAdmin(req, res);
   if (!admin) return;
 

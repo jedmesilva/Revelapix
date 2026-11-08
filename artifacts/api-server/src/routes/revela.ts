@@ -33,6 +33,17 @@ import {
 } from "@workspace/db";
 import { createSession, deleteSession, getSessionUser, hashPassword, verifyPassword } from "../lib/auth";
 import {
+  cancelRedemptionRateLimiter,
+  changePasswordRateLimiter,
+  createOrderRateLimiter,
+  googleOAuthRateLimiter,
+  loginRateLimiter,
+  redemptionRateLimiter,
+  registerRateLimiter,
+  revealRateLimiter,
+  simulatePaymentRateLimiter,
+} from "../middlewares/rate-limit";
+import {
   drawPrizeForCell,
   getPrizeFundAccount,
   getPrizeFundSnapshot,
@@ -88,7 +99,7 @@ router.get("/revela/state", async (req, res): Promise<void> => {
   res.json(GetRevelaStateResponse.parse(state));
 });
 
-router.post("/auth/register", async (req, res): Promise<void> => {
+router.post("/auth/register", registerRateLimiter, async (req, res): Promise<void> => {
   const parsed = RegisterAccountBody.safeParse(req.body);
   if (!parsed.success) {
     sendError(res, 400, "Confira o nome, o e-mail e a senha informados.", "INVALID_INPUT");
@@ -127,7 +138,7 @@ router.post("/auth/register", async (req, res): Promise<void> => {
   res.status(201).json(RegisterAccountResponse.parse(await getRevelaState(user)));
 });
 
-router.post("/auth/login", async (req, res): Promise<void> => {
+router.post("/auth/login", loginRateLimiter, async (req, res): Promise<void> => {
   const parsed = LoginAccountBody.safeParse(req.body);
   if (!parsed.success) {
     sendError(res, 400, "Informe um e-mail e uma senha válidos.", "INVALID_INPUT");
@@ -145,7 +156,7 @@ router.post("/auth/login", async (req, res): Promise<void> => {
   res.json(GetRevelaStateResponse.parse(await getRevelaState(user)));
 });
 
-router.get("/auth/google", async (req, res): Promise<void> => {
+router.get("/auth/google", googleOAuthRateLimiter, async (req, res): Promise<void> => {
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("Referrer-Policy", "no-referrer");
   const config = getGoogleAuthConfig();
@@ -178,7 +189,7 @@ router.get("/auth/google", async (req, res): Promise<void> => {
   res.redirect(302, data.url);
 });
 
-router.get("/auth/google/callback", async (req, res): Promise<void> => {
+router.get("/auth/google/callback", googleOAuthRateLimiter, async (req, res): Promise<void> => {
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("Referrer-Policy", "no-referrer");
   const config = getGoogleAuthConfig();
@@ -278,7 +289,7 @@ router.post("/auth/logout", async (req, res): Promise<void> => {
   res.sendStatus(204);
 });
 
-router.post("/auth/change-password", async (req, res): Promise<void> => {
+router.post("/auth/change-password", changePasswordRateLimiter, async (req, res): Promise<void> => {
   const user = await requireUser(req, res);
   if (!user) return;
   const parsed = ChangePasswordBody.safeParse(req.body);
@@ -306,7 +317,7 @@ router.post("/auth/change-password", async (req, res): Promise<void> => {
   res.sendStatus(204);
 });
 
-router.post("/cells/:cellId/reveal", async (req, res): Promise<void> => {
+router.post("/cells/:cellId/reveal", revealRateLimiter, async (req, res): Promise<void> => {
   const user = await requireUser(req, res);
   if (!user) return;
   const params = RevealCellParams.safeParse(req.params);
@@ -354,7 +365,7 @@ router.post("/cells/:cellId/reveal", async (req, res): Promise<void> => {
   res.json(RevealCellResponse.parse(await getRevelaState(currentUser)));
 });
 
-router.post("/orders", async (req, res): Promise<void> => {
+router.post("/orders", createOrderRateLimiter, async (req, res): Promise<void> => {
   const user = await requireUser(req, res);
   if (!user) return;
   const parsed = CreateOrderBody.strict().safeParse(req.body);
@@ -433,7 +444,7 @@ router.post("/orders", async (req, res): Promise<void> => {
   res.status(201).json(GetRevelaStateResponse.parse(await getRevelaState(currentUser)));
 });
 
-router.post("/orders/:orderId/simulate-payment", async (req, res): Promise<void> => {
+router.post("/orders/:orderId/simulate-payment", simulatePaymentRateLimiter, async (req, res): Promise<void> => {
   const user = await requireUser(req, res);
   if (!user) return;
   if (process.env.NODE_ENV === "production") {
@@ -560,7 +571,7 @@ function maskPixKey(type: string, value: string): string {
   return `${value.slice(0, 8)}-****`;
 }
 
-router.post("/redemptions", async (req, res): Promise<void> => {
+router.post("/redemptions", redemptionRateLimiter, async (req, res): Promise<void> => {
   const user = await requireUser(req, res);
   if (!user) return;
   const parsed = RedeemCellBody.safeParse(req.body);
@@ -658,7 +669,7 @@ router.post("/redemptions", async (req, res): Promise<void> => {
   res.status(201).json(RedeemCellResponse.parse(result));
 });
 
-router.post("/cells/:cellId/redemptions/cancel", async (req, res): Promise<void> => {
+router.post("/cells/:cellId/redemptions/cancel", cancelRedemptionRateLimiter, async (req, res): Promise<void> => {
   const user = await requireUser(req, res);
   if (!user) return;
   const params = CancelCellRedemptionParams.safeParse(req.params);
