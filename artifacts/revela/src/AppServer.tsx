@@ -134,6 +134,8 @@ function AppServer() {
   const lowestUnitPrice = packs.length
     ? Math.min(...packs.map(pack => pack.priceCents / pack.n))
     : null;
+  const bestValuePack = packs.find(pack => pack.n > 1 && pack.priceCents / pack.n === lowestUnitPrice)
+    ?? packs.find(pack => pack.priceCents / pack.n === lowestUnitPrice);
 
   const acceptSnapshot = (next: RevelaStateResponse) => {
     setSnapshot(next);
@@ -268,7 +270,7 @@ function AppServer() {
   };
   const openPacks = (cellId: number | null) => {
     setPendingCell(cellId);
-    setSelectedPackId(packs[0]?.id ?? null);
+    setSelectedPackId(bestValuePack?.id ?? null);
     setPackError('');
     setDialog('packs');
   };
