@@ -519,7 +519,7 @@ function AppServer() {
                 <span className="pack-total">{brl.format(pack.priceCents / 100)}</span>
                 {savings > 0 && <span className="pack-badge">−{savings}%</span>}
               </span>
-              {bestValue && <span className="pack-best">Melhor valor</span>}
+              {bestValue && <span className="pack-best">Recomendado</span>}
             </label>;
           })}
       </fieldset>
