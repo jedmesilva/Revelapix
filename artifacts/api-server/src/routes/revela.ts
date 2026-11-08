@@ -5,7 +5,6 @@ import {
   ChangePasswordBody,
   CreateOrderBody,
   GetRevelaStateResponse,
-  GetSavedRedemptionDetailsResponse,
   LoginAccountBody,
   RedeemCellBody,
   RedeemCellResponse,
@@ -33,7 +32,7 @@ import {
   getGoogleAuthConfig,
   getPublicAppOrigin,
 } from "../lib/google-auth";
-import { decryptRedemptionProfile, encryptRedemptionProfile } from "../lib/redemption-profile";
+import { encryptRedemptionProfile } from "../lib/redemption-profile";
 import {
   ensureBoard,
   expireReservations,
@@ -538,30 +537,6 @@ function maskPixKey(type: string, value: string): string {
   }
   return `${value.slice(0, 8)}-****`;
 }
-
-router.get("/account/redemption-details", async (req, res): Promise<void> => {
-  const user = await requireUser(req, res);
-  if (!user) return;
-
-  const [savedDetails] = await db
-    .select()
-    .from(redemptionProfilesTable)
-    .where(eq(redemptionProfilesTable.userId, user.id))
-    .limit(1);
-
-  let details: unknown = null;
-  if (savedDetails) {
-    try {
-      details = decryptRedemptionProfile(savedDetails);
-    } catch (error) {
-      req.log.error({ err: error }, "Could not decrypt saved redemption details");
-      sendError(res, 500, "Não foi possível carregar os dados salvos. Informe-os novamente.", "REDEMPTION_DETAILS_UNAVAILABLE");
-      return;
-    }
-  }
-
-  res.json(GetSavedRedemptionDetailsResponse.parse({ details }));
-});
 
 router.post("/redemptions", async (req, res): Promise<void> => {
   const user = await requireUser(req, res);

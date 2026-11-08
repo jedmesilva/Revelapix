@@ -202,20 +202,6 @@ paths:
           description: Simulation disabled in production
         "409":
           description: Order is no longer payable
-  /account/redemption-details:
-    get:
-      operationId: getSavedRedemptionDetails
-      tags: [auth]
-      summary: Read saved Pix redemption details for the active account
-      responses:
-        "200":
-          description: Saved redemption details, if present
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SavedRedemptionDetailsResponse"
-        "401":
-          description: Session required
   /redemptions:
     post:
       operationId: redeemCell
@@ -358,19 +344,4 @@ components:
         amountCents: { type: integer, minimum: 1 }
         maskedPixKey: { type: string }
         status: { type: string, enum: [requested, rejected, cancelled, under_review, redeemed] }
-    SavedRedemptionDetails:
-      type: object
-      required: [keyType, pixKey, holderCpf]
-      properties:
-        keyType: { type: string, enum: [cpf, phone, email, evp] }
-        pixKey: { type: string, minLength: 1, maxLength: 254 }
-        holderCpf: { type: string, minLength: 11, maxLength: 14 }
-    SavedRedemptionDetailsResponse:
-      type: object
-      required: [details]
-      properties:
-        details:
-          oneOf:
-            - $ref: "#/components/schemas/SavedRedemptionDetails"
-            - type: "null"
 

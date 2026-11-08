@@ -25,7 +25,4 @@ export * from './redemptionResult';
 export * from './redemptionResultStatus';
 export * from './registerInput';
 export * from './revelaStateResponse';
-export * from './savedRedemptionDetails';
-export * from './savedRedemptionDetailsKeyType';
-export * from './savedRedemptionDetailsResponse';
 export * from './userSummary';

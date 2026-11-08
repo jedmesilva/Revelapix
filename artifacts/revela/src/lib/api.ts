@@ -6,7 +6,6 @@ import type {
   RedemptionResult,
   RegisterInput,
   RevelaStateResponse,
-  SavedRedemptionDetailsResponse,
 } from "@workspace/api-client-react";
 
 export class ApiRequestError extends Error {
@@ -93,6 +92,3 @@ export function redeemCell(data: RedeemCellInput): Promise<RedemptionResult> {
   });
 }
 
-export function getSavedRedemptionDetails(): Promise<SavedRedemptionDetailsResponse> {
-  return request<SavedRedemptionDetailsResponse>("/api/account/redemption-details");
-}

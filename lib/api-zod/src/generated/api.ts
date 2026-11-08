@@ -470,25 +470,6 @@ export const SimulateOrderPaymentResponse = zod.object({
 
 
 /**
- * @summary Read saved Pix redemption details for the active account
- */
-export const getSavedRedemptionDetailsResponseDetailsOnePixKeyMax = 254;
-
-export const getSavedRedemptionDetailsResponseDetailsOneHolderCpfMin = 11;
-export const getSavedRedemptionDetailsResponseDetailsOneHolderCpfMax = 14;
-
-
-
-export const GetSavedRedemptionDetailsResponse = zod.object({
-  "details": zod.union([zod.object({
-  "keyType": zod.enum(['cpf', 'phone', 'email', 'evp']),
-  "pixKey": zod.string().min(1).max(getSavedRedemptionDetailsResponseDetailsOnePixKeyMax),
-  "holderCpf": zod.string().min(getSavedRedemptionDetailsResponseDetailsOneHolderCpfMin).max(getSavedRedemptionDetailsResponseDetailsOneHolderCpfMax)
-}),zod.null()])
-})
-
-
-/**
  * @summary Create a redemption request for an owned cell
  */
 export const redeemCellBodyCellIdMin = 0;
