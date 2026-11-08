@@ -6,6 +6,7 @@ Experiência demonstrativa de células reveláveis, com contas, chances, pedidos
 
 - Install dependencies with `pnpm install --frozen-lockfile`.
 - Start the managed `artifacts/api-server: API Server` and `artifacts/revela: web` services.
+- After applying the database schema, seed the initial chance packages with `pnpm --filter @workspace/db run seed`.
 - `pnpm run typecheck` — typecheck all workspace packages.
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API clients and validation schemas from OpenAPI.
 - `pnpm --filter @workspace/db run push` — apply schema changes to the development database.

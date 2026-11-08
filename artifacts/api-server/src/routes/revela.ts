@@ -17,12 +17,11 @@ import {
   SimulateOrderPaymentParams,
   SimulateOrderPaymentResponse,
 } from "@workspace/api-zod";
-import { cellsTable, db, ordersTable, sessionsTable, usersTable } from "@workspace/db";
+import { cellsTable, chancePlansTable, db, ordersTable, sessionsTable, usersTable } from "@workspace/db";
 import { createSession, deleteSession, getSessionUser, hashPassword, verifyPassword } from "../lib/auth";
 import {
   ensureBoard,
   expireReservations,
-  getPack,
   getRevelaState,
   makeDemonstrationPixPayload,
   RESERVATION_MS,
@@ -318,14 +317,9 @@ router.post("/cells/:cellId/reveal", async (req, res): Promise<void> => {
 router.post("/orders", async (req, res): Promise<void> => {
   const user = await requireUser(req, res);
   if (!user) return;
-  const parsed = CreateOrderBody.safeParse(req.body);
+  const parsed = CreateOrderBody.strict().safeParse(req.body);
   if (!parsed.success) {
     sendError(res, 400, "Escolha um pacote válido.", "INVALID_PACK");
-    return;
-  }
-  const pack = getPack(parsed.data.packCount);
-  if (!pack) {
-    sendError(res, 400, "Pacote inválido.", "INVALID_PACK");
     return;
   }
 
@@ -337,6 +331,13 @@ router.post("/orders", async (req, res): Promise<void> => {
 
   await expireReservations(createdAt);
   const result = await db.transaction(async (tx) => {
+    const [pack] = await tx.select().from(chancePlansTable)
+      .where(eq(chancePlansTable.id, parsed.data.packId))
+      .for("update");
+    if (!pack || !pack.isActive) {
+      return { error: "Este pacote não está disponível.", code: "INVALID_PACK", status: 400 };
+    }
+
     const [currentUser] = await tx.select().from(usersTable)
       .where(eq(usersTable.id, user.id))
       .for("update");
@@ -372,11 +373,12 @@ router.post("/orders", async (req, res): Promise<void> => {
     await tx.insert(ordersTable).values({
       id: orderId,
       userId: user.id,
-      packCount: pack.n,
+      packId: pack.id,
+      packCount: pack.chances,
       amountCents: pack.priceCents,
       status: "pending",
       cellId,
-      pixPayload: makeDemonstrationPixPayload(pack.n, pack.priceCents),
+      pixPayload: makeDemonstrationPixPayload(pack.chances, pack.priceCents),
       expiresAt,
       createdAt,
     });
@@ -384,7 +386,7 @@ router.post("/orders", async (req, res): Promise<void> => {
   });
 
   if (result.error) {
-    sendError(res, 409, result.error, result.code ?? undefined);
+    sendError(res, result.status ?? 409, result.error, result.code ?? undefined);
     return;
   }
   const currentUser = await getSessionUser(req);

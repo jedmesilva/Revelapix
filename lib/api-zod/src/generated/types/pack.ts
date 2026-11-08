@@ -5,10 +5,10 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-import type { PackN } from './packN';
 
 export interface Pack {
-  n: PackN;
+  /** @minimum 1 */
+  n: number;
   /** @minimum 1 */
   priceCents: number;
 }

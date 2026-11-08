@@ -6,14 +6,14 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { CellState } from './cellState';
-import type { Pack } from './pack';
+import type { ChancePlan } from './chancePlan';
 import type { PixOrder } from './pixOrder';
 import type { UserSummary } from './userSummary';
 
 export interface RevelaStateResponse {
   user: UserSummary | null;
   cells: CellState[];
-  packs: Pack[];
+  packs: ChancePlan[];
   order: PixOrder | null;
   serverTime: Date;
   testPaymentsEnabled: boolean;

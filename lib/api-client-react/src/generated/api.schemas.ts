@@ -56,18 +56,21 @@ export interface CellState {
   reservedUntil: string | null;
 }
 
-export type PackN = typeof PackN[keyof typeof PackN];
-
-
-export const PackN = {
-  NUMBER_1: 1,
-  NUMBER_5: 5,
-  NUMBER_10: 10,
-  NUMBER_25: 25,
-} as const;
-
 export interface Pack {
-  n: PackN;
+  /** @minimum 1 */
+  n: number;
+  /** @minimum 1 */
+  priceCents: number;
+}
+
+export interface ChancePlan {
+  /**
+     * @minLength 1
+     * @maxLength 64
+     */
+  id: string;
+  /** @minimum 1 */
+  n: number;
   /** @minimum 1 */
   priceCents: number;
 }
@@ -99,7 +102,7 @@ export interface PixOrder {
 export interface RevelaStateResponse {
   user: UserSummary | null;
   cells: CellState[];
-  packs: Pack[];
+  packs: ChancePlan[];
   order: PixOrder | null;
   serverTime: string;
   testPaymentsEnabled: boolean;
@@ -157,18 +160,12 @@ export interface ChangePasswordInput {
   newPassword: string;
 }
 
-export type CreateOrderInputPackCount = typeof CreateOrderInputPackCount[keyof typeof CreateOrderInputPackCount];
-
-
-export const CreateOrderInputPackCount = {
-  NUMBER_1: 1,
-  NUMBER_5: 5,
-  NUMBER_10: 10,
-  NUMBER_25: 25,
-} as const;
-
 export interface CreateOrderInput {
-  packCount: CreateOrderInputPackCount;
+  /**
+     * @minLength 1
+     * @maxLength 64
+     */
+  packId: string;
   /**
      * @minimum 0
      * @maximum 83

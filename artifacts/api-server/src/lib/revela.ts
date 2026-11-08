@@ -1,12 +1,5 @@
-import { and, desc, eq, lte } from "drizzle-orm";
-import { cellsTable, db, ordersTable, type User, usersTable } from "@workspace/db";
-
-export const PACKS = [
-  { n: 1, priceCents: 500 },
-  { n: 5, priceCents: 2000 },
-  { n: 10, priceCents: 3500 },
-  { n: 25, priceCents: 7500 },
-] as const;
+import { and, asc, desc, eq, lte } from "drizzle-orm";
+import { cellsTable, chancePlansTable, db, ordersTable, type User, usersTable } from "@workspace/db";
 
 export const CELL_COUNT = 84;
 export const RESERVATION_MS = 120_000;
@@ -66,6 +59,11 @@ export async function getRevelaState(user: User | null) {
   await expireReservations(now);
 
   const cells = await db.select().from(cellsTable).orderBy(cellsTable.id);
+  const plans = await db
+    .select()
+    .from(chancePlansTable)
+    .where(eq(chancePlansTable.isActive, true))
+    .orderBy(asc(chancePlansTable.sortOrder), asc(chancePlansTable.chances));
   const latestOrder = user
     ? await db
         .select()
@@ -75,7 +73,6 @@ export async function getRevelaState(user: User | null) {
         .limit(1)
     : [];
   const order = latestOrder[0];
-  const pack = order ? PACKS.find((candidate) => candidate.n === order.packCount) : undefined;
 
   return {
     user: user ? toUserSummary(user) : null,
@@ -93,11 +90,15 @@ export async function getRevelaState(user: User | null) {
           : null,
       };
     }),
-    packs: PACKS,
-    order: order && pack
+    packs: plans.map((plan) => ({
+      id: plan.id,
+      n: plan.chances,
+      priceCents: plan.priceCents,
+    })),
+    order: order
       ? {
           id: order.id,
-          pack: { n: pack.n, priceCents: pack.priceCents },
+          pack: { n: order.packCount, priceCents: order.amountCents },
           cellId: order.cellId,
           status: order.status,
           payload: order.pixPayload,
@@ -139,8 +140,4 @@ export function makeDemonstrationPixPayload(packCount: number, priceCents: numbe
     tlv("62", additionalData) +
     "6304";
   return payload + crc16(payload);
-}
-
-export function getPack(packCount: number) {
-  return PACKS.find((pack) => pack.n === packCount);
 }

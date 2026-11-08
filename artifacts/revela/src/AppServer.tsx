@@ -3,7 +3,7 @@ import { AlertCircle, ArrowLeft, Check, ChevronRight, Clock3, Grid2X2, LockKeyho
 import { createClient } from '@supabase/supabase-js';
 import type {
   CellState,
-  CreateOrderInputPackCount,
+  ChancePlan,
   GoogleAuthConfig,
   RedeemCellInputKeyType,
   RedemptionResult,
@@ -93,7 +93,7 @@ function AppServer() {
   const [authBusy, setAuthBusy] = useState(false);
   const [googleAuthBusy, setGoogleAuthBusy] = useState(false);
   const [pendingCell, setPendingCell] = useState<number | null>(null);
-  const [selectedPackCount, setSelectedPackCount] = useState<CreateOrderInputPackCount | null>(null);
+  const [selectedPackId, setSelectedPackId] = useState<string | null>(null);
   const [packError, setPackError] = useState('');
   const [creatingOrder, setCreatingOrder] = useState(false);
   const [tick, setTick] = useState(Date.now());
@@ -129,7 +129,7 @@ function AppServer() {
     ? Math.max(0, Math.min(100, left / Math.max(1, Date.parse(order.expiresAt) - Date.parse(order.createdAt)) * 100))
     : 0;
   const packs = snapshot?.packs ?? [];
-  const selectedChancePack = packs.find(pack => pack.n === selectedPackCount);
+  const selectedChancePack = packs.find(pack => pack.id === selectedPackId);
   const singleChancePrice = packs.find(pack => pack.n === 1)?.priceCents;
   const lowestUnitPrice = packs.length
     ? Math.min(...packs.map(pack => pack.priceCents / pack.n))
@@ -268,7 +268,7 @@ function AppServer() {
   };
   const openPacks = (cellId: number | null) => {
     setPendingCell(cellId);
-    setSelectedPackCount(packs[0]?.n ?? null);
+    setSelectedPackId(packs[0]?.id ?? null);
     setPackError('');
     setDialog('packs');
   };
@@ -305,11 +305,11 @@ function AppServer() {
   };
 
   const continueWithPack = async () => {
-    if (selectedPackCount === null || creatingOrder) return;
+    if (selectedPackId === null || creatingOrder) return;
     setCreatingOrder(true);
     setPackError('');
     try {
-      acceptSnapshot(await createOrder({ packCount: selectedPackCount, cellId: pendingCell }));
+      acceptSnapshot(await createOrder({ packId: selectedPackId, cellId: pendingCell }));
       setDialog('pix');
     } catch (error) {
       setPackError(messageFrom(error));
@@ -516,41 +516,43 @@ function AppServer() {
         : 'Cada chance revela uma célula.'}</p>
       <fieldset className="pack-grid" data-testid="list-packs">
         <legend className="sr-only">Selecione um pacote de chances</legend>
-        {packs.map(pack => {
-          const unitPrice = pack.priceCents / pack.n;
-          const savings = singleChancePrice && pack.n > 1
-            ? Math.round((1 - unitPrice / singleChancePrice) * 100)
-            : 0;
-          const bestValue = pack.n > 1 && lowestUnitPrice !== null && unitPrice === lowestUnitPrice;
-          const selected = selectedPackCount === pack.n;
-          return <label
-            className={`pack-option${selected ? ' selected' : ''}${bestValue ? ' is-best' : ''}`}
-            key={pack.n}
-            data-testid={`button-pack-${pack.n}`}
-          >
-            <input
-              className="pack-radio-input"
-              type="radio"
-              name="chance-pack"
-              value={pack.n}
-              checked={selected}
-              onChange={() => { setSelectedPackCount(pack.n); setPackError(''); }}
-            />
-            <span className="pack-radio" aria-hidden="true"/>
-            <span className="pack-main">
-              <span className="pack-name">{plural(pack.n)}</span>
-              <span className="pack-unit">
-                {savings > 0 && singleChancePrice !== undefined && <s>{brl.format(singleChancePrice / 100)}</s>}
-                {brl.format(unitPrice / 100)} por chance
+        {packs.length === 0
+          ? <p className="sub">Nenhum pacote está disponível no momento.</p>
+          : packs.map((pack: ChancePlan) => {
+            const unitPrice = pack.priceCents / pack.n;
+            const savings = singleChancePrice && pack.n > 1
+              ? Math.round((1 - unitPrice / singleChancePrice) * 100)
+              : 0;
+            const bestValue = pack.n > 1 && lowestUnitPrice !== null && unitPrice === lowestUnitPrice;
+            const selected = selectedPackId === pack.id;
+            return <label
+              className={`pack-option${selected ? ' selected' : ''}${bestValue ? ' is-best' : ''}`}
+              key={pack.id}
+              data-testid={`button-pack-${pack.n}`}
+            >
+              <input
+                className="pack-radio-input"
+                type="radio"
+                name="chance-pack"
+                value={pack.id}
+                checked={selected}
+                onChange={() => { setSelectedPackId(pack.id); setPackError(''); }}
+              />
+              <span className="pack-radio" aria-hidden="true"/>
+              <span className="pack-main">
+                <span className="pack-name">{plural(pack.n)}</span>
+                <span className="pack-unit">
+                  {savings > 0 && singleChancePrice !== undefined && <s>{brl.format(singleChancePrice / 100)}</s>}
+                  {brl.format(unitPrice / 100)} por chance
+                </span>
               </span>
-            </span>
-            <span className="pack-end">
-              <span className="pack-total">{brl.format(pack.priceCents / 100)}</span>
-              {savings > 0 && <span className="pack-badge">−{savings}%</span>}
-            </span>
-            {bestValue && <span className="pack-best">Melhor valor</span>}
-          </label>;
-        })}
+              <span className="pack-end">
+                <span className="pack-total">{brl.format(pack.priceCents / 100)}</span>
+                {savings > 0 && <span className="pack-badge">−{savings}%</span>}
+              </span>
+              {bestValue && <span className="pack-best">Melhor valor</span>}
+            </label>;
+          })}
       </fieldset>
       {packError && <ErrorMessage testId="error-pack-order">{packError}</ErrorMessage>}
       <div className="pack-confirm">

@@ -5,10 +5,13 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-import type { CreateOrderInputPackCount } from './createOrderInputPackCount';
 
 export interface CreateOrderInput {
-  packCount: CreateOrderInputPackCount;
+  /**
+     * @minLength 1
+     * @maxLength 64
+     */
+  packId: string;
   /**
      * @minimum 0
      * @maximum 83

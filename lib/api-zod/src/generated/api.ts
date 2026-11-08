@@ -25,6 +25,10 @@ export const getRevelaStateResponseUserOneChancesMin = 0;
 export const getRevelaStateResponseCellsItemIdMin = 0;
 export const getRevelaStateResponseCellsItemIdMax = 83;
 
+export const getRevelaStateResponsePacksItemIdMax = 64;
+
+
+
 
 
 export const getRevelaStateResponseOrderOneCellIdMin = 0;
@@ -50,13 +54,14 @@ export const GetRevelaStateResponse = zod.object({
   "reservedUntil": zod.coerce.date().nullable()
 })),
   "packs": zod.array(zod.object({
-  "n": zod.union([zod.literal(1),zod.literal(5),zod.literal(10),zod.literal(25)]),
+  "id": zod.string().min(1).max(getRevelaStateResponsePacksItemIdMax),
+  "n": zod.number().int().min(1),
   "priceCents": zod.number().int().min(1)
 })),
   "order": zod.union([zod.object({
   "id": zod.string().uuid(),
   "pack": zod.object({
-  "n": zod.union([zod.literal(1),zod.literal(5),zod.literal(10),zod.literal(25)]),
+  "n": zod.number().int().min(1),
   "priceCents": zod.number().int().min(1)
 }),
   "cellId": zod.number().int().min(getRevelaStateResponseOrderOneCellIdMin).max(getRevelaStateResponseOrderOneCellIdMax).nullable(),
@@ -93,6 +98,10 @@ export const registerAccountResponseUserOneChancesMin = 0;
 export const registerAccountResponseCellsItemIdMin = 0;
 export const registerAccountResponseCellsItemIdMax = 83;
 
+export const registerAccountResponsePacksItemIdMax = 64;
+
+
+
 
 
 export const registerAccountResponseOrderOneCellIdMin = 0;
@@ -118,13 +127,14 @@ export const RegisterAccountResponse = zod.object({
   "reservedUntil": zod.coerce.date().nullable()
 })),
   "packs": zod.array(zod.object({
-  "n": zod.union([zod.literal(1),zod.literal(5),zod.literal(10),zod.literal(25)]),
+  "id": zod.string().min(1).max(registerAccountResponsePacksItemIdMax),
+  "n": zod.number().int().min(1),
   "priceCents": zod.number().int().min(1)
 })),
   "order": zod.union([zod.object({
   "id": zod.string().uuid(),
   "pack": zod.object({
-  "n": zod.union([zod.literal(1),zod.literal(5),zod.literal(10),zod.literal(25)]),
+  "n": zod.number().int().min(1),
   "priceCents": zod.number().int().min(1)
 }),
   "cellId": zod.number().int().min(registerAccountResponseOrderOneCellIdMin).max(registerAccountResponseOrderOneCellIdMax).nullable(),
@@ -157,6 +167,10 @@ export const loginAccountResponseUserOneChancesMin = 0;
 export const loginAccountResponseCellsItemIdMin = 0;
 export const loginAccountResponseCellsItemIdMax = 83;
 
+export const loginAccountResponsePacksItemIdMax = 64;
+
+
+
 
 
 export const loginAccountResponseOrderOneCellIdMin = 0;
@@ -182,13 +196,14 @@ export const LoginAccountResponse = zod.object({
   "reservedUntil": zod.coerce.date().nullable()
 })),
   "packs": zod.array(zod.object({
-  "n": zod.union([zod.literal(1),zod.literal(5),zod.literal(10),zod.literal(25)]),
+  "id": zod.string().min(1).max(loginAccountResponsePacksItemIdMax),
+  "n": zod.number().int().min(1),
   "priceCents": zod.number().int().min(1)
 })),
   "order": zod.union([zod.object({
   "id": zod.string().uuid(),
   "pack": zod.object({
-  "n": zod.union([zod.literal(1),zod.literal(5),zod.literal(10),zod.literal(25)]),
+  "n": zod.number().int().min(1),
   "priceCents": zod.number().int().min(1)
 }),
   "cellId": zod.number().int().min(loginAccountResponseOrderOneCellIdMin).max(loginAccountResponseOrderOneCellIdMax).nullable(),
@@ -228,6 +243,10 @@ export const loginWithGoogleResponseUserOneChancesMin = 0;
 export const loginWithGoogleResponseCellsItemIdMin = 0;
 export const loginWithGoogleResponseCellsItemIdMax = 83;
 
+export const loginWithGoogleResponsePacksItemIdMax = 64;
+
+
+
 
 
 export const loginWithGoogleResponseOrderOneCellIdMin = 0;
@@ -253,13 +272,14 @@ export const LoginWithGoogleResponse = zod.object({
   "reservedUntil": zod.coerce.date().nullable()
 })),
   "packs": zod.array(zod.object({
-  "n": zod.union([zod.literal(1),zod.literal(5),zod.literal(10),zod.literal(25)]),
+  "id": zod.string().min(1).max(loginWithGoogleResponsePacksItemIdMax),
+  "n": zod.number().int().min(1),
   "priceCents": zod.number().int().min(1)
 })),
   "order": zod.union([zod.object({
   "id": zod.string().uuid(),
   "pack": zod.object({
-  "n": zod.union([zod.literal(1),zod.literal(5),zod.literal(10),zod.literal(25)]),
+  "n": zod.number().int().min(1),
   "priceCents": zod.number().int().min(1)
 }),
   "cellId": zod.number().int().min(loginWithGoogleResponseOrderOneCellIdMin).max(loginWithGoogleResponseOrderOneCellIdMax).nullable(),
@@ -314,6 +334,10 @@ export const revealCellResponseUserOneChancesMin = 0;
 export const revealCellResponseCellsItemIdMin = 0;
 export const revealCellResponseCellsItemIdMax = 83;
 
+export const revealCellResponsePacksItemIdMax = 64;
+
+
+
 
 
 export const revealCellResponseOrderOneCellIdMin = 0;
@@ -339,13 +363,14 @@ export const RevealCellResponse = zod.object({
   "reservedUntil": zod.coerce.date().nullable()
 })),
   "packs": zod.array(zod.object({
-  "n": zod.union([zod.literal(1),zod.literal(5),zod.literal(10),zod.literal(25)]),
+  "id": zod.string().min(1).max(revealCellResponsePacksItemIdMax),
+  "n": zod.number().int().min(1),
   "priceCents": zod.number().int().min(1)
 })),
   "order": zod.union([zod.object({
   "id": zod.string().uuid(),
   "pack": zod.object({
-  "n": zod.union([zod.literal(1),zod.literal(5),zod.literal(10),zod.literal(25)]),
+  "n": zod.number().int().min(1),
   "priceCents": zod.number().int().min(1)
 }),
   "cellId": zod.number().int().min(revealCellResponseOrderOneCellIdMin).max(revealCellResponseOrderOneCellIdMax).nullable(),
@@ -362,13 +387,15 @@ export const RevealCellResponse = zod.object({
 /**
  * @summary Create a demonstration Pix order
  */
+export const createOrderBodyPackIdMax = 64;
+
 export const createOrderBodyCellIdMin = 0;
 export const createOrderBodyCellIdMax = 83;
 
 
 
 export const CreateOrderBody = zod.object({
-  "packCount": zod.union([zod.literal(1),zod.literal(5),zod.literal(10),zod.literal(25)]),
+  "packId": zod.string().min(1).max(createOrderBodyPackIdMax),
   "cellId": zod.number().int().min(createOrderBodyCellIdMin).max(createOrderBodyCellIdMax).nullish()
 })
 
@@ -376,6 +403,10 @@ export const createOrderResponseUserOneChancesMin = 0;
 
 export const createOrderResponseCellsItemIdMin = 0;
 export const createOrderResponseCellsItemIdMax = 83;
+
+export const createOrderResponsePacksItemIdMax = 64;
+
+
 
 
 
@@ -402,13 +433,14 @@ export const CreateOrderResponse = zod.object({
   "reservedUntil": zod.coerce.date().nullable()
 })),
   "packs": zod.array(zod.object({
-  "n": zod.union([zod.literal(1),zod.literal(5),zod.literal(10),zod.literal(25)]),
+  "id": zod.string().min(1).max(createOrderResponsePacksItemIdMax),
+  "n": zod.number().int().min(1),
   "priceCents": zod.number().int().min(1)
 })),
   "order": zod.union([zod.object({
   "id": zod.string().uuid(),
   "pack": zod.object({
-  "n": zod.union([zod.literal(1),zod.literal(5),zod.literal(10),zod.literal(25)]),
+  "n": zod.number().int().min(1),
   "priceCents": zod.number().int().min(1)
 }),
   "cellId": zod.number().int().min(createOrderResponseOrderOneCellIdMin).max(createOrderResponseOrderOneCellIdMax).nullable(),
@@ -433,6 +465,10 @@ export const simulateOrderPaymentResponseUserOneChancesMin = 0;
 
 export const simulateOrderPaymentResponseCellsItemIdMin = 0;
 export const simulateOrderPaymentResponseCellsItemIdMax = 83;
+
+export const simulateOrderPaymentResponsePacksItemIdMax = 64;
+
+
 
 
 
@@ -459,13 +495,14 @@ export const SimulateOrderPaymentResponse = zod.object({
   "reservedUntil": zod.coerce.date().nullable()
 })),
   "packs": zod.array(zod.object({
-  "n": zod.union([zod.literal(1),zod.literal(5),zod.literal(10),zod.literal(25)]),
+  "id": zod.string().min(1).max(simulateOrderPaymentResponsePacksItemIdMax),
+  "n": zod.number().int().min(1),
   "priceCents": zod.number().int().min(1)
 })),
   "order": zod.union([zod.object({
   "id": zod.string().uuid(),
   "pack": zod.object({
-  "n": zod.union([zod.literal(1),zod.literal(5),zod.literal(10),zod.literal(25)]),
+  "n": zod.number().int().min(1),
   "priceCents": zod.number().int().min(1)
 }),
   "cellId": zod.number().int().min(simulateOrderPaymentResponseOrderOneCellIdMin).max(simulateOrderPaymentResponseOrderOneCellIdMax).nullable(),

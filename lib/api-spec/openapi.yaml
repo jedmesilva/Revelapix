@@ -268,7 +268,14 @@ components:
       type: object
       required: [n, priceCents]
       properties:
-        n: { type: integer, enum: [1, 5, 10, 25] }
+        n: { type: integer, minimum: 1 }
+        priceCents: { type: integer, minimum: 1 }
+    ChancePlan:
+      type: object
+      required: [id, n, priceCents]
+      properties:
+        id: { type: string, minLength: 1, maxLength: 64 }
+        n: { type: integer, minimum: 1 }
         priceCents: { type: integer, minimum: 1 }
     PixOrder:
       type: object
@@ -294,7 +301,7 @@ components:
           items: { $ref: "#/components/schemas/CellState" }
         packs:
           type: array
-          items: { $ref: "#/components/schemas/Pack" }
+          items: { $ref: "#/components/schemas/ChancePlan" }
         order:
           oneOf:
             - $ref: "#/components/schemas/PixOrder"
@@ -334,9 +341,10 @@ components:
         newPassword: { type: string, minLength: 6, maxLength: 128 }
     CreateOrderInput:
       type: object
-      required: [packCount]
+      additionalProperties: false
+      required: [packId]
       properties:
-        packCount: { type: integer, enum: [1, 5, 10, 25] }
+        packId: { type: string, minLength: 1, maxLength: 64 }
         cellId: { type: [integer, "null"], minimum: 0, maximum: 83 }
     RedeemCellInput:
       type: object
