@@ -8,6 +8,7 @@ import {
 } from "@workspace/api-zod";
 import {
   cashTransactionsTable,
+  cashLedgerLockQuery,
   db,
   redemptionRequestEventsTable,
   redemptionRequestsTable,
@@ -22,6 +23,14 @@ const router: IRouter = Router();
 type RedemptionStatus = (typeof redemptionStatusEnum.enumValues)[number];
 
 const activeRedemptionStatuses = ["requested", "under_review", "approved", "processing"] as const;
+
+function calculateCashCoveragePercent(
+  availableCentsAtRequest: number | null,
+  amountCents: number,
+): number | null {
+  if (availableCentsAtRequest === null) return null;
+  return Math.max(0, Math.round((availableCentsAtRequest / amountCents) * 10_000) / 100);
+}
 
 const allowedTransitions: Record<RedemptionStatus, readonly RedemptionStatus[]> = {
   requested: ["under_review", "rejected", "cancelled"],
@@ -78,6 +87,7 @@ router.get("/admin/finance", async (req, res): Promise<void> => {
     userEmail: usersTable.email,
     cellId: redemptionRequestsTable.cellId,
     amountCents: redemptionRequestsTable.amountCents,
+    cashAvailableCentsAtRequest: redemptionRequestsTable.cashAvailableCentsAtRequest,
     status: redemptionRequestsTable.status,
     createdAt: redemptionRequestsTable.createdAt,
     updatedAt: redemptionRequestsTable.updatedAt,
@@ -105,7 +115,13 @@ router.get("/admin/finance", async (req, res): Promise<void> => {
     reservedCents,
     availableCents: cashBalanceCents - reservedCents,
     testPurchaseCents: Number(totals?.testPurchaseCents ?? 0),
-    redemptions,
+    redemptions: redemptions.map((redemption) => ({
+      ...redemption,
+      cashCoveragePercent: calculateCashCoveragePercent(
+        redemption.cashAvailableCentsAtRequest,
+        redemption.amountCents,
+      ),
+    })),
     transactions,
   }));
 });
@@ -122,6 +138,8 @@ router.patch("/admin/redemptions/:requestId", async (req, res): Promise<void> =>
   }
 
   const result = await db.transaction(async (tx) => {
+    await tx.execute(cashLedgerLockQuery);
+
     const [requestLocator] = await tx.select({
       cellId: redemptionRequestsTable.cellId,
     }).from(redemptionRequestsTable)
@@ -184,6 +202,11 @@ router.patch("/admin/redemptions/:requestId", async (req, res): Promise<void> =>
         userEmail: owner.email,
         cellId: request.cellId,
         amountCents: request.amountCents,
+        cashAvailableCentsAtRequest: request.cashAvailableCentsAtRequest,
+        cashCoveragePercent: calculateCashCoveragePercent(
+          request.cashAvailableCentsAtRequest,
+          request.amountCents,
+        ),
         status: updated.status,
         createdAt: request.createdAt,
         updatedAt: updated.updatedAt,

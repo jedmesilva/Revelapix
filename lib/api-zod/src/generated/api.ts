@@ -581,6 +581,8 @@ export const getAdminFinanceResponseRedemptionsItemCellIdMin = 0;
 export const getAdminFinanceResponseRedemptionsItemCellIdMax = 83;
 
 
+export const getAdminFinanceResponseRedemptionsItemCashCoveragePercentMin = 0;
+
 
 
 
@@ -595,6 +597,8 @@ export const GetAdminFinanceResponse = zod.object({
   "userEmail": zod.string().email(),
   "cellId": zod.number().int().min(getAdminFinanceResponseRedemptionsItemCellIdMin).max(getAdminFinanceResponseRedemptionsItemCellIdMax),
   "amountCents": zod.number().int().min(1),
+  "cashAvailableCentsAtRequest": zod.number().int().nullable(),
+  "cashCoveragePercent": zod.number().min(getAdminFinanceResponseRedemptionsItemCashCoveragePercentMin).nullable(),
   "status": zod.enum(['requested', 'under_review', 'approved', 'rejected', 'cancelled', 'processing', 'redeemed']),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
@@ -624,6 +628,8 @@ export const updateRedemptionStatusResponseCellIdMin = 0;
 export const updateRedemptionStatusResponseCellIdMax = 83;
 
 
+export const updateRedemptionStatusResponseCashCoveragePercentMin = 0;
+
 
 
 export const UpdateRedemptionStatusResponse = zod.object({
@@ -632,6 +638,8 @@ export const UpdateRedemptionStatusResponse = zod.object({
   "userEmail": zod.string().email(),
   "cellId": zod.number().int().min(updateRedemptionStatusResponseCellIdMin).max(updateRedemptionStatusResponseCellIdMax),
   "amountCents": zod.number().int().min(1),
+  "cashAvailableCentsAtRequest": zod.number().int().nullable(),
+  "cashCoveragePercent": zod.number().min(updateRedemptionStatusResponseCashCoveragePercentMin).nullable(),
   "status": zod.enum(['requested', 'under_review', 'approved', 'rejected', 'cancelled', 'processing', 'redeemed']),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()

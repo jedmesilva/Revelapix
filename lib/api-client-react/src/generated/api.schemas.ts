@@ -286,6 +286,13 @@ export interface AdminRedemption {
   cellId: number;
   /** @minimum 1 */
   amountCents: number;
+  /** @nullable */
+  cashAvailableCentsAtRequest: number | null;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  cashCoveragePercent: number | null;
   status: AdminRedemptionStatus;
   createdAt: string;
   updatedAt: string;

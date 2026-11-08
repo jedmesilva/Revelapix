@@ -471,13 +471,15 @@ components:
         status: { type: string, enum: [cancelled] }
     AdminRedemption:
       type: object
-      required: [requestId, userName, userEmail, cellId, amountCents, status, createdAt, updatedAt]
+      required: [requestId, userName, userEmail, cellId, amountCents, cashAvailableCentsAtRequest, cashCoveragePercent, status, createdAt, updatedAt]
       properties:
         requestId: { type: string, format: uuid }
         userName: { type: string }
         userEmail: { type: string, format: email }
         cellId: { type: integer, minimum: 0, maximum: 83 }
         amountCents: { type: integer, minimum: 1 }
+        cashAvailableCentsAtRequest: { type: ["integer", "null"] }
+        cashCoveragePercent: { type: ["number", "null"], minimum: 0 }
         status: { type: string, enum: [requested, under_review, approved, rejected, cancelled, processing, redeemed] }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }

@@ -10,6 +10,7 @@ export const redemptionRequestsTable = pgTable(
     userId: uuid("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
     cellId: integer("cell_id").notNull().references(() => cellsTable.id, { onDelete: "restrict" }),
     amountCents: integer("amount_cents").notNull(),
+    cashAvailableCentsAtRequest: integer("cash_available_cents_at_request"),
     status: redemptionStatusEnum("status").notNull().default("requested"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })

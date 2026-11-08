@@ -19,6 +19,7 @@ import {
 } from "@workspace/api-zod";
 import {
   cellsTable,
+  cashLedgerLockQuery,
   cashTransactionsTable,
   chancePlansTable,
   db,
@@ -45,6 +46,7 @@ import {
 } from "../lib/revela";
 
 const router: IRouter = Router();
+const activeRedemptionStatuses = ["requested", "under_review", "approved", "processing"] as const;
 
 type SupabaseAuthUser = {
   id: string;
@@ -574,6 +576,8 @@ router.post("/redemptions", async (req, res): Promise<void> => {
 
   await ensureBoard();
   const redemption = await db.transaction(async (tx) => {
+    await tx.execute(cashLedgerLockQuery);
+
     const [currentCell] = await tx.select().from(cellsTable)
       .where(eq(cellsTable.id, parsed.data.cellId))
       .for("update");
@@ -595,6 +599,23 @@ router.post("/redemptions", async (req, res): Promise<void> => {
       .where(eq(itemsTable.id, currentCell.itemId));
     if (!item || item.type !== "pix" || item.valueCents === null) return null;
 
+    const [cashTotals] = await tx.select({
+      incomingCents: sql<string>`coalesce(sum(case
+        when ${cashTransactionsTable.type} = 'package_purchase' and ${cashTransactionsTable.isTest} = false
+        then ${cashTransactionsTable.amountCents} else 0 end), 0)::text`,
+      outgoingCents: sql<string>`coalesce(sum(case
+        when ${cashTransactionsTable.type} = 'redemption_payout' and ${cashTransactionsTable.isTest} = false
+        then ${cashTransactionsTable.amountCents} else 0 end), 0)::text`,
+    }).from(cashTransactionsTable);
+    const [reserved] = await tx.select({
+      totalCents: sql<string>`coalesce(sum(${redemptionRequestsTable.amountCents}), 0)::text`,
+    }).from(redemptionRequestsTable)
+      .where(inArray(redemptionRequestsTable.status, activeRedemptionStatuses));
+    const cashAvailableCentsAtRequest =
+      Number(cashTotals?.incomingCents ?? 0)
+      - Number(cashTotals?.outgoingCents ?? 0)
+      - Number(reserved?.totalCents ?? 0);
+
     const [updatedCell] = await tx.update(cellsTable)
       .set({ redemptionStatus: "requested" })
       .where(eq(cellsTable.id, currentCell.id))
@@ -607,6 +628,7 @@ router.post("/redemptions", async (req, res): Promise<void> => {
         userId: user.id,
         cellId: currentCell.id,
         amountCents: item.valueCents,
+        cashAvailableCentsAtRequest,
         status: "requested",
       })
       .returning();
@@ -643,6 +665,8 @@ router.post("/cells/:cellId/redemptions/cancel", async (req, res): Promise<void>
   }
 
   const cancelled = await db.transaction(async (tx) => {
+    await tx.execute(cashLedgerLockQuery);
+
     const [cell] = await tx.select().from(cellsTable)
       .where(eq(cellsTable.id, params.data.cellId))
       .for("update");
