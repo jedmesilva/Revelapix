@@ -53,8 +53,7 @@ export const GetRevelaStateResponse = zod.object({
   "name": zod.string(),
   "email": zod.string().email(),
   "chances": zod.number().int().min(getRevelaStateResponseUserOneChancesMin),
-  "hasPassword": zod.boolean(),
-  "isAdmin": zod.boolean()
+  "hasPassword": zod.boolean()
 }),zod.null()]),
   "cells": zod.array(zod.object({
   "id": zod.number().int().min(getRevelaStateResponseCellsItemIdMin).max(getRevelaStateResponseCellsItemIdMax),
@@ -134,8 +133,7 @@ export const RegisterAccountResponse = zod.object({
   "name": zod.string(),
   "email": zod.string().email(),
   "chances": zod.number().int().min(registerAccountResponseUserOneChancesMin),
-  "hasPassword": zod.boolean(),
-  "isAdmin": zod.boolean()
+  "hasPassword": zod.boolean()
 }),zod.null()]),
   "cells": zod.array(zod.object({
   "id": zod.number().int().min(registerAccountResponseCellsItemIdMin).max(registerAccountResponseCellsItemIdMax),
@@ -211,8 +209,7 @@ export const LoginAccountResponse = zod.object({
   "name": zod.string(),
   "email": zod.string().email(),
   "chances": zod.number().int().min(loginAccountResponseUserOneChancesMin),
-  "hasPassword": zod.boolean(),
-  "isAdmin": zod.boolean()
+  "hasPassword": zod.boolean()
 }),zod.null()]),
   "cells": zod.array(zod.object({
   "id": zod.number().int().min(loginAccountResponseCellsItemIdMin).max(loginAccountResponseCellsItemIdMax),
@@ -333,8 +330,7 @@ export const RevealCellResponse = zod.object({
   "name": zod.string(),
   "email": zod.string().email(),
   "chances": zod.number().int().min(revealCellResponseUserOneChancesMin),
-  "hasPassword": zod.boolean(),
-  "isAdmin": zod.boolean()
+  "hasPassword": zod.boolean()
 }),zod.null()]),
   "cells": zod.array(zod.object({
   "id": zod.number().int().min(revealCellResponseCellsItemIdMin).max(revealCellResponseCellsItemIdMax),
@@ -411,8 +407,7 @@ export const CreateOrderResponse = zod.object({
   "name": zod.string(),
   "email": zod.string().email(),
   "chances": zod.number().int().min(createOrderResponseUserOneChancesMin),
-  "hasPassword": zod.boolean(),
-  "isAdmin": zod.boolean()
+  "hasPassword": zod.boolean()
 }),zod.null()]),
   "cells": zod.array(zod.object({
   "id": zod.number().int().min(createOrderResponseCellsItemIdMin).max(createOrderResponseCellsItemIdMax),
@@ -481,8 +476,7 @@ export const RefreshOrderPaymentResponse = zod.object({
   "name": zod.string(),
   "email": zod.string().email(),
   "chances": zod.number().int().min(refreshOrderPaymentResponseUserOneChancesMin),
-  "hasPassword": zod.boolean(),
-  "isAdmin": zod.boolean()
+  "hasPassword": zod.boolean()
 }),zod.null()]),
   "cells": zod.array(zod.object({
   "id": zod.number().int().min(refreshOrderPaymentResponseCellsItemIdMin).max(refreshOrderPaymentResponseCellsItemIdMax),
@@ -551,8 +545,7 @@ export const SimulateOrderPaymentResponse = zod.object({
   "name": zod.string(),
   "email": zod.string().email(),
   "chances": zod.number().int().min(simulateOrderPaymentResponseUserOneChancesMin),
-  "hasPassword": zod.boolean(),
-  "isAdmin": zod.boolean()
+  "hasPassword": zod.boolean()
 }),zod.null()]),
   "cells": zod.array(zod.object({
   "id": zod.number().int().min(simulateOrderPaymentResponseCellsItemIdMin).max(simulateOrderPaymentResponseCellsItemIdMax),
@@ -637,82 +630,6 @@ export const CancelCellRedemptionParams = zod.object({
 export const CancelCellRedemptionResponse = zod.object({
   "requestId": zod.string().uuid(),
   "status": zod.enum(['cancelled'])
-})
-
-
-/**
- * @summary Read the cash balance and redemption queue
- */
-export const getAdminFinanceResponseReservedCentsMin = 0;
-
-export const getAdminFinanceResponseTestPurchaseCentsMin = 0;
-
-export const getAdminFinanceResponseRedemptionsItemCellIdMin = 0;
-export const getAdminFinanceResponseRedemptionsItemCellIdMax = 83;
-
-
-export const getAdminFinanceResponseRedemptionsItemCashCoveragePercentMin = 0;
-
-
-
-
-export const GetAdminFinanceResponse = zod.object({
-  "cashBalanceCents": zod.number().int(),
-  "reservedCents": zod.number().int().min(getAdminFinanceResponseReservedCentsMin),
-  "availableCents": zod.number().int(),
-  "testPurchaseCents": zod.number().int().min(getAdminFinanceResponseTestPurchaseCentsMin),
-  "redemptions": zod.array(zod.object({
-  "requestId": zod.string().uuid(),
-  "userName": zod.string(),
-  "userEmail": zod.string().email(),
-  "cellId": zod.number().int().min(getAdminFinanceResponseRedemptionsItemCellIdMin).max(getAdminFinanceResponseRedemptionsItemCellIdMax),
-  "amountCents": zod.number().int().min(1),
-  "cashAvailableCentsAtRequest": zod.number().int().nullable(),
-  "cashCoveragePercent": zod.number().min(getAdminFinanceResponseRedemptionsItemCashCoveragePercentMin).nullable(),
-  "status": zod.enum(['requested', 'under_review', 'approved', 'rejected', 'cancelled', 'processing', 'redeemed']),
-  "createdAt": zod.coerce.date(),
-  "updatedAt": zod.coerce.date()
-})),
-  "transactions": zod.array(zod.object({
-  "id": zod.string().uuid(),
-  "type": zod.enum(['package_purchase', 'redemption_payout']),
-  "amountCents": zod.number().int().min(1),
-  "isTest": zod.boolean(),
-  "createdAt": zod.coerce.date()
-}))
-})
-
-
-/**
- * @summary Advance or close a redemption request
- */
-export const UpdateRedemptionStatusParams = zod.object({
-  "requestId": zod.coerce.string().uuid()
-})
-
-export const UpdateRedemptionStatusBody = zod.object({
-  "status": zod.enum(['requested', 'under_review', 'approved', 'rejected', 'cancelled', 'processing', 'redeemed'])
-})
-
-export const updateRedemptionStatusResponseCellIdMin = 0;
-export const updateRedemptionStatusResponseCellIdMax = 83;
-
-
-export const updateRedemptionStatusResponseCashCoveragePercentMin = 0;
-
-
-
-export const UpdateRedemptionStatusResponse = zod.object({
-  "requestId": zod.string().uuid(),
-  "userName": zod.string(),
-  "userEmail": zod.string().email(),
-  "cellId": zod.number().int().min(updateRedemptionStatusResponseCellIdMin).max(updateRedemptionStatusResponseCellIdMax),
-  "amountCents": zod.number().int().min(1),
-  "cashAvailableCentsAtRequest": zod.number().int().nullable(),
-  "cashCoveragePercent": zod.number().min(updateRedemptionStatusResponseCashCoveragePercentMin).nullable(),
-  "status": zod.enum(['requested', 'under_review', 'approved', 'rejected', 'cancelled', 'processing', 'redeemed']),
-  "createdAt": zod.coerce.date(),
-  "updatedAt": zod.coerce.date()
 })
 
 

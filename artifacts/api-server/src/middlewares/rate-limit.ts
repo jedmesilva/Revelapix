@@ -27,4 +27,3 @@ export const createOrderRateLimiter = createRateLimiter(10);
 export const simulatePaymentRateLimiter = createRateLimiter(10);
 export const redemptionRateLimiter = createRateLimiter(5);
 export const cancelRedemptionRateLimiter = createRateLimiter(15);
-export const adminRedemptionUpdateRateLimiter = createRateLimiter(30);

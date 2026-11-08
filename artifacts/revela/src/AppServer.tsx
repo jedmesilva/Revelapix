@@ -8,7 +8,6 @@ import type {
   RevelaStateResponse,
 } from '@workspace/api-client-react';
 import { CellGrid } from './components/CellGrid';
-import { AdminFinancePanel } from './components/AdminFinancePanel';
 import { Modal } from './components/Modal';
 import { TopBar } from './components/TopBar';
 import {
@@ -27,7 +26,7 @@ import {
 import { brl, digits, formatTime, maskCpf, maskPhone, plural, redemptionStatusLabels } from './domain/revela';
 
 type View = 'all' | 'mine';
-type Dialog = 'none' | 'auth' | 'packs' | 'pix' | 'account' | 'redeem' | 'finance';
+type Dialog = 'none' | 'auth' | 'packs' | 'pix' | 'account' | 'redeem';
 type KeyOption = { id: RedeemCellInputKeyType; label: string; ph: string; mode: string };
 const KEY_OPTIONS: KeyOption[] = [
   { id: 'cpf', label: 'CPF', ph: '000.000.000-00', mode: 'numeric' },
@@ -471,7 +470,6 @@ function AppServer() {
         }
       }}
       onAccount={openAccount}
-      onFinance={() => setDialog('finance')}
     />
     {loadError && <div role="alert" className="err" style={{ margin: '12px auto', maxWidth: 720 }}><AlertCircle className="icon"/><span>{loadError}</span></div>}
     {view === 'mine' && <div className="viewbar"><div className="viewbar-in">
@@ -627,9 +625,6 @@ function AppServer() {
       </form>}
     </Modal>
 
-    <Modal open={dialog === 'finance'} title="Caixa e resgates" onClose={closeDialog} wide testId="dialog-finance">
-      {user?.isAdmin && <AdminFinancePanel/>}
-    </Modal>
   </div>;
 }
 

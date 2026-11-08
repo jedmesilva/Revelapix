@@ -112,7 +112,6 @@ export function toUserSummary(user: User) {
     email: user.email,
     chances: user.chances,
     hasPassword: user.passwordHash !== null,
-    isAdmin: user.isAdmin,
   };
 }
 

@@ -41,15 +41,10 @@ Experiência de células reveláveis com contas, chances, cobranças Pix pela Ef
 - Google sign-in is validated by Supabase on the server, then linked to the app's PostgreSQL account by verified email and its provider identity.
 - Redemption requests are persisted with a status linked to the revealed cell; new requests start as `requested`, and the cell exposes its current redemption status only to its owner.
 - Cash movements are append-only and linked to a paid order or completed redemption. Test Pix purchases are recorded separately and never count as real cash; active redemption requests reserve funds but are not cash outflows.
-- Redemption status changes are validated on the server and recorded in an event history. Admin access is controlled by the database `is_admin` flag, never by an unverified email address.
+- Redemption status changes are validated on the server and recorded in an event history.
 - The browser holds only transient form, navigation, and animation state; it requests server state for rendering and cannot authorize business actions.
 - Revela database tables are server-only. RLS is enabled and forced with no Supabase client policies, and `anon`, `authenticated`, and `service_role` have no table privileges in `public`. The Express server remains the only application access path.
-- The current Express database connection uses Supabase's `postgres` role, which has `BYPASSRLS`; RLS does not replace route-level authentication, ownership checks, or admin checks for server queries. Keep those checks server-side.
+- The current Express database connection uses Supabase's `postgres` role, which has `BYPASSRLS`; RLS does not replace route-level authentication or ownership checks for server queries. Keep those checks server-side.
 - The server confirms Efí charges by matching the provider's completed status, transaction ID, and amount before adding chances, revealing a reserved cell, or recording cash. Homologation payments are recorded as test money.
 - Production payments stay blocked until `EFI_ENVIRONMENT=production` and `EFI_LIVE_PAYMENTS_ENABLED=true` are both configured. Confirm Efí approval and the legal requirements for the chance-based product before enabling them.
 - Redemptions remain simulated: they do not verify Pix-key ownership or transfer money.
-
-## Cash administration
-
-- Grant administrator access only to an account you control. After the account exists, set `revela_users.is_admin` to `TRUE` for its row in the development database. Do not use email allowlists: password sign-up does not verify email ownership.
-- The finance panel shows real cash separately from simulated purchase totals. Mark a redemption as completed only after the Pix has been sent outside the app; the app does not initiate transfers or store Pix keys/CPFs for later processing.
