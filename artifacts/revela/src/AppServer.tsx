@@ -8,10 +8,12 @@ import type {
   RevelaStateResponse,
 } from '@workspace/api-client-react';
 import { CellGrid } from './components/CellGrid';
+import { AdminFinancePanel } from './components/AdminFinancePanel';
 import { Modal } from './components/Modal';
 import { TopBar } from './components/TopBar';
 import {
   changePassword,
+  cancelCellRedemption,
   createOrder,
   getRevelaState,
   loginAccount,
@@ -25,7 +27,7 @@ import {
 import { brl, digits, formatTime, maskCpf, maskPhone, plural, redemptionStatusLabels } from './domain/revela';
 
 type View = 'all' | 'mine';
-type Dialog = 'none' | 'auth' | 'packs' | 'pix' | 'account' | 'redeem';
+type Dialog = 'none' | 'auth' | 'packs' | 'pix' | 'account' | 'redeem' | 'finance';
 type KeyOption = { id: RedeemCellInputKeyType; label: string; ph: string; mode: string };
 const KEY_OPTIONS: KeyOption[] = [
   { id: 'cpf', label: 'CPF', ph: '000.000.000-00', mode: 'numeric' },
@@ -387,6 +389,16 @@ function AppServer() {
     }
   };
 
+  const onCancelRedemption = async (cellId: number) => {
+    if (!window.confirm('Cancelar esta solicitação de resgate?')) return;
+    try {
+      await cancelCellRedemption(cellId);
+      await refreshState();
+    } catch (error) {
+      setLoadError(messageFrom(error));
+    }
+  };
+
   const copyPix = async () => {
     if (!order) return;
     try { await navigator.clipboard.writeText(order.payload); }
@@ -417,6 +429,7 @@ function AppServer() {
         }
       }}
       onAccount={openAccount}
+      onFinance={() => setDialog('finance')}
     />
     {loadError && <div role="alert" className="err" style={{ margin: '12px auto', maxWidth: 720 }}><AlertCircle className="icon"/><span>{loadError}</span></div>}
     {view === 'mine' && <div className="viewbar"><div className="viewbar-in">
@@ -430,7 +443,7 @@ function AppServer() {
         <p className="sub">Você ainda não revelou nenhuma célula.</p>
         <button className="btn" type="button" onClick={() => routeTo('all')} data-testid="button-see-all">Ver todas as células</button>
       </div>}
-      {!loading && snapshot && <CellGrid cells={cells} view={view} reducedMotion={reducedMotion} sparkId={sparkId} revealId={revealId} onCell={onCell} onRedeem={openRedeem}/>}
+      {!loading && snapshot && <CellGrid cells={cells} view={view} reducedMotion={reducedMotion} sparkId={sparkId} revealId={revealId} onCell={onCell} onRedeem={openRedeem} onCancelRedemption={onCancelRedemption}/>}
     </main>
 
     <Modal open={dialog === 'auth'} title={authMode === 'up' ? 'Criar conta' : 'Entrar'} onClose={closeDialog} testId="dialog-auth">
@@ -570,6 +583,10 @@ function AppServer() {
         {redeemError && <ErrorMessage testId="error-redeem">{redeemError}</ErrorMessage>}
         <button className="btn full" type="submit" disabled={redeemBusy} data-testid="button-submit-redeem">{redeemBusy ? 'Verificando titular…' : 'Confirmar resgate'}</button>
       </form>}
+    </Modal>
+
+    <Modal open={dialog === 'finance'} title="Caixa e resgates" onClose={closeDialog} wide testId="dialog-finance">
+      {user?.isAdmin && <AdminFinancePanel/>}
     </Modal>
   </div>;
 }

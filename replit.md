@@ -33,5 +33,12 @@ Experiência demonstrativa de células reveláveis, com contas, chances, pedidos
 - Accounts, password hashes, sessions, chances, cell ownership, prize data, Pix orders, reservation expiry, and redemption eligibility are server-owned and persisted in PostgreSQL.
 - Google sign-in is validated by Supabase on the server, then linked to the app's PostgreSQL account by verified email and its provider identity.
 - Redemption requests are persisted with a status linked to the revealed cell; new requests start as `requested`, and the cell exposes its current redemption status only to its owner.
+- Cash movements are append-only and linked to a paid order or completed redemption. Test Pix purchases are recorded separately and never count as real cash; active redemption requests reserve funds but are not cash outflows.
+- Redemption status changes are validated on the server and recorded in an event history. Admin access is controlled by the database `is_admin` flag, never by an unverified email address.
 - The browser holds only transient form, navigation, and animation state; it requests server state for rendering and cannot authorize business actions.
 - Pix payment and redemption are demonstrations only. Payment simulation is disabled in production; redemptions do not verify key ownership or transfer money.
+
+## Cash administration
+
+- Grant administrator access only to an account you control. After the account exists, set `revela_users.is_admin` to `TRUE` for its row in the development database. Do not use email allowlists: password sign-up does not verify email ownership.
+- The finance panel shows real cash separately from simulated purchase totals. Mark a redemption as completed only after the Pix has been sent outside the app; the app does not initiate transfers or store Pix keys/CPFs for later processing.

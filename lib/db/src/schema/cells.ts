@@ -1,4 +1,4 @@
-import { boolean, index, integer, pgEnum, pgTable, timestamp, uuid } from "drizzle-orm/pg-core";
+import { boolean, index, integer, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { itemsTable } from "./items";
 import { usersTable } from "./users";
 
@@ -10,6 +10,8 @@ export const redemptionStatusEnum = pgEnum("revela_redemption_status", [
   "cancelled",
   "under_review",
   "redeemed",
+  "approved",
+  "processing",
 ]);
 
 export const cellsTable = pgTable(
@@ -19,7 +21,7 @@ export const cellsTable = pgTable(
     phase: cellPhaseEnum("phase").notNull().default("closed"),
     ownerUserId: uuid("owner_user_id").references(() => usersTable.id, { onDelete: "set null" }),
     redeemed: boolean("redeemed").notNull().default(false),
-    redemptionStatus: redemptionStatusEnum("redemption_status"),
+    redemptionStatus: text("redemption_status"),
     // Legacy fields are retained until production data has been backfilled safely.
     prizeValueCents: integer("prize_value_cents").notNull(),
     prizeKind: prizeKindEnum("prize_kind").notNull(),

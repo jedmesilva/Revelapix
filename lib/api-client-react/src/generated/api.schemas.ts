@@ -16,6 +16,7 @@ export interface UserSummary {
   /** @minimum 0 */
   chances: number;
   hasPassword: boolean;
+  isAdmin: boolean;
 }
 
 export type CellItemType = typeof CellItemType[keyof typeof CellItemType];
@@ -54,9 +55,11 @@ export type CellStateRedemptionStatus = typeof CellStateRedemptionStatus[keyof t
 
 export const CellStateRedemptionStatus = {
   requested: 'requested',
+  under_review: 'under_review',
+  approved: 'approved',
   rejected: 'rejected',
   cancelled: 'cancelled',
-  under_review: 'under_review',
+  processing: 'processing',
   redeemed: 'redeemed',
 } as const;
 
@@ -214,9 +217,11 @@ export type RedemptionResultStatus = typeof RedemptionResultStatus[keyof typeof 
 
 export const RedemptionResultStatus = {
   requested: 'requested',
+  under_review: 'under_review',
+  approved: 'approved',
   rejected: 'rejected',
   cancelled: 'cancelled',
-  under_review: 'under_review',
+  processing: 'processing',
   redeemed: 'redeemed',
 } as const;
 
@@ -226,6 +231,92 @@ export interface RedemptionResult {
   amountCents: number;
   maskedPixKey: string;
   status: RedemptionResultStatus;
+}
+
+export type RedemptionStatusUpdateStatus = typeof RedemptionStatusUpdateStatus[keyof typeof RedemptionStatusUpdateStatus];
+
+
+export const RedemptionStatusUpdateStatus = {
+  requested: 'requested',
+  under_review: 'under_review',
+  approved: 'approved',
+  rejected: 'rejected',
+  cancelled: 'cancelled',
+  processing: 'processing',
+  redeemed: 'redeemed',
+} as const;
+
+export interface RedemptionStatusUpdate {
+  status: RedemptionStatusUpdateStatus;
+}
+
+export type CancelRedemptionResponseStatus = typeof CancelRedemptionResponseStatus[keyof typeof CancelRedemptionResponseStatus];
+
+
+export const CancelRedemptionResponseStatus = {
+  cancelled: 'cancelled',
+} as const;
+
+export interface CancelRedemptionResponse {
+  requestId: string;
+  status: CancelRedemptionResponseStatus;
+}
+
+export type AdminRedemptionStatus = typeof AdminRedemptionStatus[keyof typeof AdminRedemptionStatus];
+
+
+export const AdminRedemptionStatus = {
+  requested: 'requested',
+  under_review: 'under_review',
+  approved: 'approved',
+  rejected: 'rejected',
+  cancelled: 'cancelled',
+  processing: 'processing',
+  redeemed: 'redeemed',
+} as const;
+
+export interface AdminRedemption {
+  requestId: string;
+  userName: string;
+  userEmail: string;
+  /**
+     * @minimum 0
+     * @maximum 83
+     */
+  cellId: number;
+  /** @minimum 1 */
+  amountCents: number;
+  status: AdminRedemptionStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type AdminCashTransactionType = typeof AdminCashTransactionType[keyof typeof AdminCashTransactionType];
+
+
+export const AdminCashTransactionType = {
+  package_purchase: 'package_purchase',
+  redemption_payout: 'redemption_payout',
+} as const;
+
+export interface AdminCashTransaction {
+  id: string;
+  type: AdminCashTransactionType;
+  /** @minimum 1 */
+  amountCents: number;
+  isTest: boolean;
+  createdAt: string;
+}
+
+export interface AdminFinanceResponse {
+  cashBalanceCents: number;
+  /** @minimum 0 */
+  reservedCents: number;
+  availableCents: number;
+  /** @minimum 0 */
+  testPurchaseCents: number;
+  redemptions: AdminRedemption[];
+  transactions: AdminCashTransaction[];
 }
 
 export type CompleteGoogleAuthParams = {

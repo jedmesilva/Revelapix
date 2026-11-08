@@ -1,10 +1,12 @@
 export type KeyType = 'cpf' | 'phone' | 'email' | 'evp';
 export const redemptionStatusLabels = {
   requested: 'Resgate solicitado',
+  under_review: 'Resgate em análise',
+  approved: 'Resgate aprovado',
   rejected: 'Resgate recusado',
   cancelled: 'Resgate cancelado',
-  under_review: 'Resgate em análise',
-  redeemed: 'Resgatado',
+  processing: 'Resgate em processamento',
+  redeemed: 'Resgate concluído',
 } as const;
 export const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 export const plural = (n: number) => `${n} ${n === 1 ? 'chance' : 'chances'}`;

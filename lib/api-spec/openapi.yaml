@@ -18,6 +18,8 @@ tags:
     description: Cell reveal and redemption operations
   - name: orders
     description: Demonstration Pix orders
+  - name: admin
+    description: Cash overview and redemption review
   - name: storage
     description: Public images used by catalog items
 paths:
@@ -250,6 +252,81 @@ paths:
           description: Session required
         "409":
           description: Cell is not eligible for redemption
+  /cells/{cellId}/redemptions/cancel:
+    post:
+      operationId: cancelCellRedemption
+      tags: [cells]
+      summary: Cancel an eligible redemption request owned by the current user
+      parameters:
+        - name: cellId
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 83
+      responses:
+        "200":
+          description: Redemption request cancelled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CancelRedemptionResponse"
+        "401":
+          description: Session required
+        "409":
+          description: Redemption is no longer cancellable
+  /admin/finance:
+    get:
+      operationId: getAdminFinance
+      tags: [admin]
+      summary: Read the cash balance and redemption queue
+      responses:
+        "200":
+          description: Current financial overview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminFinanceResponse"
+        "401":
+          description: Session required
+        "403":
+          description: Administrator access required
+  /admin/redemptions/{requestId}:
+    patch:
+      operationId: updateRedemptionStatus
+      tags: [admin]
+      summary: Advance or close a redemption request
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RedemptionStatusUpdate"
+      responses:
+        "200":
+          description: Updated redemption request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminRedemption"
+        "400":
+          description: Invalid status transition
+        "401":
+          description: Session required
+        "403":
+          description: Administrator access required
+        "404":
+          description: Redemption request not found
+        "409":
+          description: Redemption is not eligible for processing
 components:
   schemas:
     HealthStatus:
@@ -261,13 +338,14 @@ components:
         - status
     UserSummary:
       type: object
-      required: [id, name, email, chances, hasPassword]
+      required: [id, name, email, chances, hasPassword, isAdmin]
       properties:
         id: { type: string, format: uuid }
         name: { type: string }
         email: { type: string, format: email }
         chances: { type: integer, minimum: 0 }
         hasPassword: { type: boolean }
+        isAdmin: { type: boolean }
     CellItem:
       type: object
       required: [id, type, name, valueCents, imageUrl]
@@ -287,7 +365,7 @@ components:
         redeemed: { type: boolean }
         redemptionStatus:
           type: [string, "null"]
-          enum: [requested, rejected, cancelled, under_review, redeemed, null]
+          enum: [requested, under_review, approved, rejected, cancelled, processing, redeemed, null]
         item:
           oneOf:
             - $ref: "#/components/schemas/CellItem"
@@ -378,5 +456,52 @@ components:
         requestId: { type: string, format: uuid }
         amountCents: { type: integer, minimum: 1 }
         maskedPixKey: { type: string }
-        status: { type: string, enum: [requested, rejected, cancelled, under_review, redeemed] }
+        status: { type: string, enum: [requested, under_review, approved, rejected, cancelled, processing, redeemed] }
+    RedemptionStatusUpdate:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status: { type: string, enum: [requested, under_review, approved, rejected, cancelled, processing, redeemed] }
+    CancelRedemptionResponse:
+      type: object
+      required: [requestId, status]
+      properties:
+        requestId: { type: string, format: uuid }
+        status: { type: string, enum: [cancelled] }
+    AdminRedemption:
+      type: object
+      required: [requestId, userName, userEmail, cellId, amountCents, status, createdAt, updatedAt]
+      properties:
+        requestId: { type: string, format: uuid }
+        userName: { type: string }
+        userEmail: { type: string, format: email }
+        cellId: { type: integer, minimum: 0, maximum: 83 }
+        amountCents: { type: integer, minimum: 1 }
+        status: { type: string, enum: [requested, under_review, approved, rejected, cancelled, processing, redeemed] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    AdminCashTransaction:
+      type: object
+      required: [id, type, amountCents, isTest, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        type: { type: string, enum: [package_purchase, redemption_payout] }
+        amountCents: { type: integer, minimum: 1 }
+        isTest: { type: boolean }
+        createdAt: { type: string, format: date-time }
+    AdminFinanceResponse:
+      type: object
+      required: [cashBalanceCents, reservedCents, availableCents, testPurchaseCents, redemptions, transactions]
+      properties:
+        cashBalanceCents: { type: integer }
+        reservedCents: { type: integer, minimum: 0 }
+        availableCents: { type: integer }
+        testPurchaseCents: { type: integer, minimum: 0 }
+        redemptions:
+          type: array
+          items: { $ref: "#/components/schemas/AdminRedemption" }
+        transactions:
+          type: array
+          items: { $ref: "#/components/schemas/AdminCashTransaction" }
 

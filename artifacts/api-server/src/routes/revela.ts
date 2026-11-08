@@ -1,8 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { Router, type IRouter, type Request, type Response } from "express";
-import { and, desc, eq, gt, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, isNull, sql } from "drizzle-orm";
 import {
   ChangePasswordBody,
+  CancelCellRedemptionParams,
+  CancelCellRedemptionResponse,
   CreateOrderBody,
   GetRevelaStateResponse,
   LoginAccountBody,
@@ -17,11 +19,13 @@ import {
 } from "@workspace/api-zod";
 import {
   cellsTable,
+  cashTransactionsTable,
   chancePlansTable,
   db,
   itemsTable,
   ordersTable,
   redemptionRequestsTable,
+  redemptionRequestEventsTable,
   sessionsTable,
   usersTable,
 } from "@workspace/db";
@@ -461,6 +465,14 @@ router.post("/orders/:orderId/simulate-payment", async (req, res): Promise<void>
 
     const addedChances = order.packCount - (order.cellId !== null ? 1 : 0);
     await tx.update(ordersTable).set({ status: "paid", paidAt: now }).where(eq(ordersTable.id, order.id));
+    await tx.insert(cashTransactionsTable).values({
+      type: "package_purchase",
+      amountCents: order.amountCents,
+      orderId: order.id,
+      isTest: true,
+      createdByUserId: user.id,
+      createdAt: now,
+    });
     await tx.update(usersTable)
       .set({ chances: sql`${usersTable.chances} + ${addedChances}` })
       .where(eq(usersTable.id, user.id));
@@ -572,6 +584,8 @@ router.post("/redemptions", async (req, res): Promise<void> => {
       || currentCell.redeemed
       || currentCell.redemptionStatus === "requested"
       || currentCell.redemptionStatus === "under_review"
+      || currentCell.redemptionStatus === "approved"
+      || currentCell.redemptionStatus === "processing"
       || currentCell.redemptionStatus === "redeemed"
     ) {
       return null;
@@ -596,6 +610,12 @@ router.post("/redemptions", async (req, res): Promise<void> => {
         status: "requested",
       })
       .returning();
+    await tx.insert(redemptionRequestEventsTable).values({
+      requestId: request.id,
+      fromStatus: null,
+      toStatus: "requested",
+      actorUserId: user.id,
+    });
 
     return { cell: updatedCell, request };
   });
@@ -611,6 +631,54 @@ router.post("/redemptions", async (req, res): Promise<void> => {
     status: redemption.request.status,
   };
   res.status(201).json(RedeemCellResponse.parse(result));
+});
+
+router.post("/cells/:cellId/redemptions/cancel", async (req, res): Promise<void> => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const params = CancelCellRedemptionParams.safeParse(req.params);
+  if (!params.success) {
+    sendError(res, 400, "Célula inválida.", "INVALID_CELL");
+    return;
+  }
+
+  const cancelled = await db.transaction(async (tx) => {
+    const [cell] = await tx.select().from(cellsTable)
+      .where(eq(cellsTable.id, params.data.cellId))
+      .for("update");
+    if (!cell || cell.ownerUserId !== user.id || cell.redeemed) return null;
+
+    const [request] = await tx.select().from(redemptionRequestsTable)
+      .where(and(
+        eq(redemptionRequestsTable.cellId, cell.id),
+        eq(redemptionRequestsTable.userId, user.id),
+        inArray(redemptionRequestsTable.status, ["requested", "under_review"]),
+      ))
+      .orderBy(desc(redemptionRequestsTable.createdAt))
+      .limit(1)
+      .for("update");
+    if (!request) return null;
+
+    await tx.update(redemptionRequestsTable)
+      .set({ status: "cancelled" })
+      .where(eq(redemptionRequestsTable.id, request.id));
+    await tx.update(cellsTable)
+      .set({ redemptionStatus: "cancelled" })
+      .where(eq(cellsTable.id, cell.id));
+    await tx.insert(redemptionRequestEventsTable).values({
+      requestId: request.id,
+      fromStatus: request.status,
+      toStatus: "cancelled",
+      actorUserId: user.id,
+    });
+    return { requestId: request.id, status: "cancelled" as const };
+  });
+
+  if (!cancelled) {
+    sendError(res, 409, "Este resgate já não pode ser cancelado.", "REDEMPTION_NOT_CANCELLABLE");
+    return;
+  }
+  res.json(CancelCellRedemptionResponse.parse(cancelled));
 });
 
 export default router;

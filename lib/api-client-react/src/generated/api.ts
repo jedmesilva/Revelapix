@@ -25,6 +25,9 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AdminFinanceResponse,
+  AdminRedemption,
+  CancelRedemptionResponse,
   ChangePasswordInput,
   CompleteGoogleAuthParams,
   CreateOrderInput,
@@ -32,6 +35,7 @@ import type {
   LoginInput,
   RedeemCellInput,
   RedemptionResult,
+  RedemptionStatusUpdate,
   RegisterInput,
   RevelaStateResponse
 } from './api.schemas';
@@ -1236,5 +1240,269 @@ export const useRedeemCell = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getRedeemCellMutationOptions(options), queryClient);
+    }
+
+export const getCancelCellRedemptionUrl = (cellId: number,) => {
+
+
+
+
+  return `/api/cells/${cellId}/redemptions/cancel`
+}
+
+/**
+ * @summary Cancel an eligible redemption request owned by the current user
+ */
+export const cancelCellRedemption = async (cellId: number, options?: Parameters<typeof customFetch>[1]): Promise<CancelRedemptionResponse> => {
+
+  return customFetch<CancelRedemptionResponse>(getCancelCellRedemptionUrl(cellId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getCancelCellRedemptionMutationKey = () => ['cancelCellRedemption'] as const;
+
+export const getCancelCellRedemptionMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelCellRedemption>>, TError,CancelCellRedemptionMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof cancelCellRedemption>>, TError,CancelCellRedemptionMutationVariables, TContext> => {
+
+const mutationKey = getCancelCellRedemptionMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof cancelCellRedemption>>, CancelCellRedemptionMutationVariables> = (props) => {
+          const {cellId} = props ?? {};
+
+          return  cancelCellRedemption(cellId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CancelCellRedemptionMutationResult = NonNullable<Awaited<ReturnType<typeof cancelCellRedemption>>>
+
+    export type CancelCellRedemptionMutationError = ErrorType<void>
+    export type CancelCellRedemptionMutationVariables = {cellId: number}
+
+    /**
+ * @summary Cancel an eligible redemption request owned by the current user
+ */
+export const useCancelCellRedemption = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelCellRedemption>>, TError,CancelCellRedemptionMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof cancelCellRedemption>>,
+        TError,
+        CancelCellRedemptionMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCancelCellRedemptionMutationOptions(options), queryClient);
+    }
+
+export const getGetAdminFinanceUrl = () => {
+
+
+
+
+  return `/api/admin/finance`
+}
+
+/**
+ * @summary Read the cash balance and redemption queue
+ */
+export const getAdminFinance = async ( options?: Parameters<typeof customFetch>[1]): Promise<AdminFinanceResponse> => {
+
+  return customFetch<AdminFinanceResponse>(getGetAdminFinanceUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminFinanceQueryKey = () => {
+    return [
+    `/api/admin/finance`
+    ] as const;
+    }
+
+
+export const getGetAdminFinanceQueryOptions = <TData = Awaited<ReturnType<typeof getAdminFinance>>, TError = ErrorType<void>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminFinance>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminFinanceQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminFinance>>> = ({ signal }) => getAdminFinance({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminFinance>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetAdminFinanceQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminFinance>>>
+export type GetAdminFinanceQueryError = ErrorType<void>
+
+
+export function useGetAdminFinance<TData = Awaited<ReturnType<typeof getAdminFinance>>, TError = ErrorType<void>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminFinance>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAdminFinance>>,
+          TError,
+          Awaited<ReturnType<typeof getAdminFinance>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAdminFinance<TData = Awaited<ReturnType<typeof getAdminFinance>>, TError = ErrorType<void>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminFinance>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAdminFinance>>,
+          TError,
+          Awaited<ReturnType<typeof getAdminFinance>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAdminFinance<TData = Awaited<ReturnType<typeof getAdminFinance>>, TError = ErrorType<void>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminFinance>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Read the cash balance and redemption queue
+ */
+
+export function useGetAdminFinance<TData = Awaited<ReturnType<typeof getAdminFinance>>, TError = ErrorType<void>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminFinance>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetAdminFinanceQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateRedemptionStatusUrl = (requestId: string,) => {
+
+
+
+
+  return `/api/admin/redemptions/${requestId}`
+}
+
+/**
+ * @summary Advance or close a redemption request
+ */
+export const updateRedemptionStatus = async (requestId: string,
+    redemptionStatusUpdate: RedemptionStatusUpdate, options?: Parameters<typeof customFetch>[1]): Promise<AdminRedemption> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<AdminRedemption>(getUpdateRedemptionStatusUrl(requestId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(redemptionStatusUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateRedemptionStatusMutationKey = () => ['updateRedemptionStatus'] as const;
+
+export const getUpdateRedemptionStatusMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateRedemptionStatus>>, TError,UpdateRedemptionStatusMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateRedemptionStatus>>, TError,UpdateRedemptionStatusMutationVariables, TContext> => {
+
+const mutationKey = getUpdateRedemptionStatusMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateRedemptionStatus>>, UpdateRedemptionStatusMutationVariables> = (props) => {
+          const {requestId,data} = props ?? {};
+
+          return  updateRedemptionStatus(requestId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateRedemptionStatusMutationResult = NonNullable<Awaited<ReturnType<typeof updateRedemptionStatus>>>
+    export type UpdateRedemptionStatusMutationBody = BodyType<RedemptionStatusUpdate>
+    export type UpdateRedemptionStatusMutationError = ErrorType<void>
+    export type UpdateRedemptionStatusMutationVariables = {requestId: string;data: BodyType<RedemptionStatusUpdate>}
+
+    /**
+ * @summary Advance or close a redemption request
+ */
+export const useUpdateRedemptionStatus = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateRedemptionStatus>>, TError,UpdateRedemptionStatusMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updateRedemptionStatus>>,
+        TError,
+        UpdateRedemptionStatusMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateRedemptionStatusMutationOptions(options), queryClient);
     }
 

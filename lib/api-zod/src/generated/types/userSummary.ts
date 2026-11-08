@@ -13,4 +13,5 @@ export interface UserSummary {
   /** @minimum 0 */
   chances: number;
   hasPassword: boolean;
+  isAdmin: boolean;
 }

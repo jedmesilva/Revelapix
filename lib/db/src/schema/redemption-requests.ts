@@ -21,7 +21,7 @@ export const redemptionRequestsTable = pgTable(
     index("revela_redemption_requests_user_created_idx").on(table.userId, table.createdAt),
     uniqueIndex("revela_redemption_active_cell_unique")
       .on(table.cellId)
-      .where(sql`${table.status} in ('requested', 'under_review')`),
+      .where(sql`${table.status} in ('requested', 'under_review', 'approved', 'processing')`),
   ],
 );
 

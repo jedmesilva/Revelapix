@@ -1,4 +1,4 @@
-import { integer, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { boolean, integer, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
 export const usersTable = pgTable(
   "revela_users",
@@ -9,6 +9,7 @@ export const usersTable = pgTable(
     passwordHash: text("password_hash"),
     googleSubject: text("google_subject"),
     chances: integer("chances").notNull().default(2),
+    isAdmin: boolean("is_admin").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [

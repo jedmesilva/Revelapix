@@ -1,9 +1,14 @@
 import type {
   ChangePasswordInput,
+  CancelRedemptionResponse,
   CreateOrderInput,
+  AdminFinanceResponse,
+  AdminRedemption,
+  AdminRedemptionStatus,
   LoginInput,
   RedeemCellInput,
   RedemptionResult,
+  RedemptionStatusUpdate,
   RegisterInput,
   RevelaStateResponse,
 } from "@workspace/api-client-react";
@@ -88,6 +93,25 @@ export function simulateOrderPayment(orderId: string): Promise<RevelaStateRespon
 export function redeemCell(data: RedeemCellInput): Promise<RedemptionResult> {
   return request<RedemptionResult>("/api/redemptions", {
     method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export function cancelCellRedemption(cellId: number): Promise<CancelRedemptionResponse> {
+  return request<CancelRedemptionResponse>(`/api/cells/${cellId}/redemptions/cancel`, { method: "POST" });
+}
+
+export function getAdminFinance(): Promise<AdminFinanceResponse> {
+  return request<AdminFinanceResponse>("/api/admin/finance");
+}
+
+export function updateRedemptionStatus(
+  requestId: string,
+  status: AdminRedemptionStatus,
+): Promise<AdminRedemption> {
+  const data: RedemptionStatusUpdate = { status };
+  return request<AdminRedemption>(`/api/admin/redemptions/${encodeURIComponent(requestId)}`, {
+    method: "PATCH",
     body: JSON.stringify(data),
   });
 }

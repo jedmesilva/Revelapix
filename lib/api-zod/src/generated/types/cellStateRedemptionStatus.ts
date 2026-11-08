@@ -14,8 +14,10 @@ export type CellStateRedemptionStatus = typeof CellStateRedemptionStatus[keyof t
 
 export const CellStateRedemptionStatus = {
   requested: 'requested',
+  under_review: 'under_review',
+  approved: 'approved',
   rejected: 'rejected',
   cancelled: 'cancelled',
-  under_review: 'under_review',
+  processing: 'processing',
   redeemed: 'redeemed',
 } as const;
