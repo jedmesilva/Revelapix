@@ -22,7 +22,9 @@ export function getGoogleAuthConfig(): GoogleAuthConfig {
 }
 
 export function getPublicAppOrigin(): string | null {
+  const publicAppOrigin = process.env.PUBLIC_APP_ORIGIN?.trim();
   const configuredDomains = [
+    ...(publicAppOrigin ? [publicAppOrigin] : []),
     ...(process.env.REPLIT_DOMAINS ?? "").split(","),
     process.env.REPLIT_DEV_DOMAIN ?? "",
   ];
@@ -35,7 +37,12 @@ export function getPublicAppOrigin(): string | null {
     );
     const localHttpAllowed = process.env.NODE_ENV !== "production"
       && (url.hostname === "localhost" || url.hostname === "127.0.0.1");
-    if (url.protocol !== "https:" && !(url.protocol === "http:" && localHttpAllowed)) return null;
+    if (
+      (url.protocol !== "https:" && !(url.protocol === "http:" && localHttpAllowed))
+      || url.pathname !== "/"
+      || url.search
+      || url.hash
+    ) return null;
     return url.origin;
   } catch {
     return null;

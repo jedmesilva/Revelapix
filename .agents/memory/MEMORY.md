@@ -2,3 +2,4 @@
 - [Saldo de caixa](cash-balance.md) — manter dados financeiros confiáveis, com gestão em interface administrativa isolada do app público.
 - [OpenAPI no Node 20](openapi-node20.md) — o Orval atual usa `Map.groupBy`, ausente no Node 20 configurado; codegen pode falhar após gerar parte dos clientes.
 - [Catálogo de prêmios](item-catalog.md) — células apontam para itens Pix ou imagem; arquivos de imagem ficam no App Storage.
+- [Hospedagem externa](deployment-hosting.md) — decisão do projeto: interface na Vercel, API Express no Railway, mantendo o monorepo pnpm.

@@ -173,7 +173,7 @@ router.get("/auth/google", googleOAuthRateLimiter, async (req, res): Promise<voi
 
   const appOrigin = getPublicAppOrigin();
   if (!appOrigin) {
-    req.log.error("Could not determine a trusted Replit app domain for Google OAuth");
+    req.log.error("Could not determine a trusted public app origin for Google OAuth");
     res.redirect(303, "/?googleAuthError=unavailable");
     return;
   }
