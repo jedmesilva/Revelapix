@@ -1,6 +1,6 @@
 import { randomInt, randomUUID } from "node:crypto";
 import { Router, type IRouter, type Request, type Response } from "express";
-import { and, desc, eq, gt, inArray, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
 import {
   ChangePasswordBody,
   CancelCellRedemptionParams,
@@ -12,6 +12,7 @@ import {
   RedeemCellResponse,
   RegisterAccountBody,
   RegisterAccountResponse,
+  RefreshOrderPaymentParams,
   RevealCellParams,
   RevealCellResponse,
   SimulateOrderPaymentParams,
@@ -57,10 +58,15 @@ import {
   getPublicAppOrigin,
 } from "../lib/google-auth";
 import {
+  createEfiPixCharge,
+  EfiApiError,
+  getEfiPaymentSetupError,
+} from "../lib/efi-pix";
+import { reconcileEfiOrder } from "../lib/order-payments";
+import {
   ensureBoard,
   expireReservations,
   getRevelaState,
-  makeDemonstrationPixPayload,
   RESERVATION_MS,
 } from "../lib/revela";
 
@@ -368,6 +374,11 @@ router.post("/cells/:cellId/reveal", revealRateLimiter, async (req, res): Promis
 router.post("/orders", createOrderRateLimiter, async (req, res): Promise<void> => {
   const user = await requireUser(req, res);
   if (!user) return;
+  const efiSetupError = getEfiPaymentSetupError();
+  if (efiSetupError) {
+    sendError(res, 503, efiSetupError, "EFI_NOT_CONFIGURED");
+    return;
+  }
   const parsed = CreateOrderBody.strict().safeParse(req.body);
   if (!parsed.success) {
     sendError(res, 400, "Escolha um pacote válido.", "INVALID_PACK");
@@ -381,7 +392,10 @@ router.post("/orders", createOrderRateLimiter, async (req, res): Promise<void> =
   const cellId = parsed.data.cellId ?? null;
 
   await expireReservations(createdAt);
-  const result = await db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx): Promise<
+    | { error: string; code: string; status?: number }
+    | { error: null; code: null; amountCents: number }
+  > => {
     const [pack] = await tx.select().from(chancePlansTable)
       .where(eq(chancePlansTable.id, parsed.data.packId))
       .for("update");
@@ -398,7 +412,10 @@ router.post("/orders", createOrderRateLimiter, async (req, res): Promise<void> =
       .where(and(
         eq(ordersTable.userId, user.id),
         eq(ordersTable.status, "pending"),
-        gt(ordersTable.expiresAt, createdAt),
+        or(
+          gt(ordersTable.expiresAt, createdAt),
+          isNotNull(ordersTable.providerTxid),
+        ),
       ))
       .limit(1)
       .for("update");
@@ -417,7 +434,7 @@ router.post("/orders", createOrderRateLimiter, async (req, res): Promise<void> =
       await tx.update(cellsTable).set({
         phase: "reserved",
         reservedByUserId: user.id,
-        reservedUntil: expiresAt,
+        reservedUntil: null,
       }).where(eq(cellsTable.id, cellId));
     }
 
@@ -429,19 +446,87 @@ router.post("/orders", createOrderRateLimiter, async (req, res): Promise<void> =
       amountCents: pack.priceCents,
       status: "pending",
       cellId,
-      pixPayload: makeDemonstrationPixPayload(pack.chances, pack.priceCents),
+      providerTxid: orderId.replaceAll("-", ""),
+      pixPayload: "",
       expiresAt,
       createdAt,
     });
-    return { error: null, code: null };
+    return { error: null, code: null, amountCents: pack.priceCents };
   });
 
-  if (result.error) {
+  if (result.error !== null) {
     sendError(res, result.status ?? 409, result.error, result.code ?? undefined);
+    return;
+  }
+  const providerTxid = orderId.replaceAll("-", "");
+  try {
+    const charge = await createEfiPixCharge(providerTxid, result.amountCents, expiresAt);
+    if (!charge.pixCopyPaste) throw new EfiApiError("Efí did not return the Pix copy-and-paste code.");
+    await db.update(ordersTable)
+      .set({ pixPayload: charge.pixCopyPaste })
+      .where(and(eq(ordersTable.id, orderId), eq(ordersTable.providerTxid, providerTxid)));
+  } catch (error) {
+    if (error instanceof EfiApiError && [400, 401, 403, 404].includes(error.statusCode ?? 0)) {
+      await db.transaction(async (tx) => {
+        const [order] = await tx.select().from(ordersTable)
+          .where(and(eq(ordersTable.id, orderId), eq(ordersTable.status, "pending")))
+          .for("update");
+        if (!order) return;
+        await tx.update(ordersTable).set({ status: "expired" }).where(eq(ordersTable.id, order.id));
+        if (order.cellId !== null) {
+          await tx.update(cellsTable).set({
+            phase: "closed",
+            reservedByUserId: null,
+            reservedUntil: null,
+          }).where(and(
+            eq(cellsTable.id, order.cellId),
+            eq(cellsTable.phase, "reserved"),
+            eq(cellsTable.reservedByUserId, user.id),
+          ));
+        }
+      });
+    }
+    req.log.error({ err: error, orderId }, "Could not create Efí Pix charge");
+    sendError(res, 502, "Não foi possível gerar o Pix agora. Tente novamente em instantes.", "EFI_CHARGE_FAILED");
     return;
   }
   const currentUser = await getSessionUser(req);
   res.status(201).json(GetRevelaStateResponse.parse(await getRevelaState(currentUser)));
+});
+
+router.post("/orders/:orderId/refresh", async (req, res): Promise<void> => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const params = RefreshOrderPaymentParams.safeParse(req.params);
+  if (!params.success) {
+    sendError(res, 400, "Pedido inválido.", "INVALID_ORDER");
+    return;
+  }
+
+  const [order] = await db.select({ id: ordersTable.id, providerTxid: ordersTable.providerTxid })
+    .from(ordersTable)
+    .where(and(
+      eq(ordersTable.id, params.data.orderId),
+      eq(ordersTable.userId, user.id),
+    ))
+    .limit(1);
+  if (!order) {
+    sendError(res, 404, "Pedido não encontrado.", "ORDER_NOT_FOUND");
+    return;
+  }
+
+  if (order.providerTxid) {
+    try {
+      await reconcileEfiOrder(order.id);
+    } catch (error) {
+      req.log.warn({ err: error, orderId: order.id }, "Could not refresh Efí Pix order");
+      sendError(res, 503, "Não foi possível verificar o pagamento agora. Tentaremos novamente.", "EFI_STATUS_UNAVAILABLE");
+      return;
+    }
+  }
+
+  const currentUser = await getSessionUser(req);
+  res.json(GetRevelaStateResponse.parse(await getRevelaState(currentUser)));
 });
 
 router.post("/orders/:orderId/simulate-payment", simulatePaymentRateLimiter, async (req, res): Promise<void> => {
@@ -465,7 +550,7 @@ router.post("/orders/:orderId/simulate-payment", simulatePaymentRateLimiter, asy
     const [order] = await tx.select().from(ordersTable)
       .where(and(eq(ordersTable.id, params.data.orderId), eq(ordersTable.userId, user.id)))
       .for("update");
-    if (!order || order.status !== "pending") {
+    if (!order || order.status !== "pending" || order.providerTxid !== null) {
       return { error: "Este pedido não está aguardando pagamento.", code: "ORDER_UNAVAILABLE" };
     }
     if (order.expiresAt <= now) {

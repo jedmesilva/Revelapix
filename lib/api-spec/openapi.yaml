@@ -17,7 +17,7 @@ tags:
   - name: cells
     description: Cell reveal and redemption operations
   - name: orders
-    description: Demonstration Pix orders
+    description: Efí Pix orders
   - name: admin
     description: Cash overview and redemption review
   - name: storage
@@ -185,7 +185,7 @@ paths:
     post:
       operationId: createOrder
       tags: [orders]
-      summary: Create a demonstration Pix order
+      summary: Create an Efí Pix order
       requestBody:
         required: true
         content:
@@ -203,6 +203,35 @@ paths:
           description: Session required
         "409":
           description: Order or cell is unavailable
+        "503":
+          description: Efí Pix is not configured
+        "502":
+          description: Efí Pix could not create the charge
+  /orders/{orderId}/refresh:
+    post:
+      operationId: refreshOrderPayment
+      tags: [orders]
+      summary: Refresh an order using Efí's verified payment status
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Current state after checking the provider
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RevelaStateResponse"
+        "401":
+          description: Session required
+        "404":
+          description: Order does not belong to the current account
+        "503":
+          description: Provider status is temporarily unavailable
   /orders/{orderId}/simulate-payment:
     post:
       operationId: simulateOrderPayment

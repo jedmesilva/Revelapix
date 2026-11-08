@@ -84,6 +84,12 @@ export function createOrder(data: CreateOrderInput): Promise<RevelaStateResponse
   });
 }
 
+export function refreshOrderPayment(orderId: string): Promise<RevelaStateResponse> {
+  return request<RevelaStateResponse>(`/api/orders/${encodeURIComponent(orderId)}/refresh`, {
+    method: "POST",
+  });
+}
+
 export function simulateOrderPayment(orderId: string): Promise<RevelaStateResponse> {
   return request<RevelaStateResponse>(`/api/orders/${encodeURIComponent(orderId)}/simulate-payment`, {
     method: "POST",

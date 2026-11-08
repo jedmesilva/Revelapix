@@ -20,8 +20,8 @@ import {
   logoutAccount,
   redeemCell,
   registerAccount,
+  refreshOrderPayment,
   revealCell,
-  simulateOrderPayment,
   ApiRequestError,
 } from './lib/api';
 import { brl, digits, formatTime, maskCpf, maskPhone, plural, redemptionStatusLabels } from './domain/revela';
@@ -54,7 +54,8 @@ function QRCode({ value }: { value: string }) {
     return { count, path };
   }, [value]);
   return <div className="qr" data-testid="pix-qr">
-    {data ? <svg viewBox={`0 0 ${data.count} ${data.count}`} shapeRendering="crispEdges" role="img" aria-label="QR code Pix demonstrativo"><path d={data.path}/></svg> :
+    {!value ? <p className="qr-fallback">Preparando o código Pix…</p> :
+      data ? <svg viewBox={`0 0 ${data.count} ${data.count}`} shapeRendering="crispEdges" role="img" aria-label="QR code Pix Efí"><path d={data.path}/></svg> :
       <p className="qr-fallback">QR indisponível. Use o código copia e cola.</p>}
   </div>;
 }
@@ -84,6 +85,7 @@ function AppServer() {
   const [creatingOrder, setCreatingOrder] = useState(false);
   const [tick, setTick] = useState(Date.now());
   const [copyLabel, setCopyLabel] = useState('Copiar código Pix');
+  const [paymentStatusError, setPaymentStatusError] = useState('');
   const [redeemCellId, setRedeemCellId] = useState<number | null>(null);
   const [redeemType, setRedeemType] = useState<RedeemCellInputKeyType>('cpf');
   const [redeemKey, setRedeemKey] = useState('');
@@ -101,6 +103,7 @@ function AppServer() {
   const [sparkId, setSparkId] = useState<number | null>(null);
   const [revealId, setRevealId] = useState<number | null>(null);
   const lastExpiryRefresh = useRef<string | null>(null);
+  const lastPaidOrderClose = useRef<string | null>(null);
 
   const user = snapshot?.user ?? null;
   const cells = snapshot?.cells ?? [];
@@ -171,7 +174,7 @@ function AppServer() {
   }, []);
   useEffect(() => {
     const refresh = () => {
-      if (document.visibilityState === 'visible') {
+      if (document.visibilityState === 'visible' && (!order || order.status !== 'pending')) {
         refreshState().catch(error => setLoadError(messageFrom(error)));
       }
     };
@@ -183,7 +186,48 @@ function AppServer() {
       window.removeEventListener('focus', refresh);
       document.removeEventListener('visibilitychange', refresh);
     };
-  }, [refreshState]);
+  }, [order, refreshState]);
+  useEffect(() => {
+    if (!order || order.status !== 'pending') {
+      setPaymentStatusError('');
+      return;
+    }
+
+    let active = true;
+    const checkPayment = async () => {
+      if (document.visibilityState !== 'visible') return;
+      try {
+        const next = await refreshOrderPayment(order.id);
+        if (!active) return;
+        setPaymentStatusError('');
+        acceptSnapshot(next);
+      } catch {
+        if (active) {
+          setPaymentStatusError('Não foi possível verificar agora. A confirmação será tentada novamente.');
+        }
+      }
+    };
+    const interval = window.setInterval(() => { void checkPayment(); }, 8_000);
+    window.addEventListener('focus', checkPayment);
+    document.addEventListener('visibilitychange', checkPayment);
+    void checkPayment();
+
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+      window.removeEventListener('focus', checkPayment);
+      document.removeEventListener('visibilitychange', checkPayment);
+    };
+  }, [order?.id, order?.status]);
+  useEffect(() => {
+    if (!order || order.status !== 'paid' || lastPaidOrderClose.current === order.id) return;
+    lastPaidOrderClose.current = order.id;
+    const timeout = window.setTimeout(() => {
+      setDialog(current => current === 'pix' ? 'none' : current);
+      refreshState().catch(error => setLoadError(messageFrom(error)));
+    }, 900);
+    return () => window.clearTimeout(timeout);
+  }, [order?.id, order?.status, refreshState]);
   useEffect(() => {
     const media = window.matchMedia('(prefers-reduced-motion: reduce)');
     const update = () => setReducedMotion(media.matches);
@@ -264,25 +308,22 @@ function AppServer() {
     setCreatingOrder(true);
     setPackError('');
     try {
+      setPaymentStatusError('');
       acceptSnapshot(await createOrder({ packId: selectedPackId, cellId: pendingCell }));
       setDialog('pix');
     } catch (error) {
+      try {
+        const current = await refreshState();
+        if (current.order?.status === 'pending') {
+          setDialog('pix');
+          return;
+        }
+      } catch {
+        // Keep the original order-creation error visible when recovery also fails.
+      }
       setPackError(messageFrom(error));
     } finally {
       setCreatingOrder(false);
-    }
-  };
-
-  const simulatePayment = async () => {
-    if (!order || order.status !== 'pending' || !snapshot?.testPaymentsEnabled) return;
-    try {
-      acceptSnapshot(await simulateOrderPayment(order.id));
-      window.setTimeout(() => {
-        setDialog('none');
-        refreshState().catch(error => setLoadError(messageFrom(error)));
-      }, 900);
-    } catch (error) {
-      setLoadError(messageFrom(error));
     }
   };
 
@@ -401,6 +442,7 @@ function AppServer() {
 
   const copyPix = async () => {
     if (!order) return;
+    if (!order.payload) return;
     try { await navigator.clipboard.writeText(order.payload); }
     catch {
       const area = document.createElement('textarea');
@@ -527,7 +569,7 @@ function AppServer() {
               ? `Pagar ${brl.format(selectedChancePack.priceCents / 100)} com Pix`
               : 'Selecione um pacote'}
         </button>
-        <p className="pack-footnote">Pix demonstrativo · nenhuma cobrança real será feita</p>
+        <p className="pack-footnote">Pagamento via Pix processado pela Efí.</p>
       </div>
     </Modal>
 
@@ -538,10 +580,10 @@ function AppServer() {
           <div className={`status ${order.status}`} data-testid="status-payment">{statusLabel}</div>
           <QRCode value={order.payload}/>
           <div className="clock"><Clock3 className="icon"/><span data-testid="value-pix-timer">{order.status === 'paid' ? 'pago' : order.status === 'expired' ? '00:00' : formatTime(left)}</span><div className="bar"><i style={{ width: `${order.status === 'pending' ? progress : 0}%` }}/></div></div>
-          <button className="btn full" id="copy" type="button" disabled={order.status !== 'pending'} onClick={copyPix} data-testid="button-copy-pix">{copyLabel}</button>
-          {snapshot?.testPaymentsEnabled && <button className="btn full ghost" id="sim" type="button" disabled={order.status !== 'pending'} onClick={simulatePayment} data-testid="button-simulate-payment">Simular pagamento (teste)</button>}
+          <button className="btn full" id="copy" type="button" disabled={order.status !== 'pending' || !order.payload} onClick={copyPix} data-testid="button-copy-pix">{copyLabel}</button>
+          {paymentStatusError && <p className="hint" role="status" data-testid="text-payment-check-error">{paymentStatusError}</p>}
           <p className="hint" id="hint" data-testid="text-payment-hint">
-            {order.status === 'pending' ? `${order.cellId !== null ? `A célula #${order.cellId + 1} está reservada enquanto o tempo corre e será revelada ao pagar. ` : ''}Fechar esta janela não cancela o pedido. Este Pix é apenas demonstrativo.` :
+            {order.status === 'pending' ? `${order.cellId !== null ? `A célula #${order.cellId + 1} está reservada enquanto o tempo corre e será revelada ao pagar. ` : ''}Fechar esta janela não cancela o pedido. A confirmação é consultada diretamente na Efí.` :
               order.status === 'paid' ? (order.cellId !== null ? 'Abrindo sua célula…' : 'Chances adicionadas.') :
               `O Pix expirou${order.cellId !== null ? ' e a célula foi liberada.' : '.'}`}
           </p>

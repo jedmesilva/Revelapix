@@ -1001,7 +1001,7 @@ export const getCreateOrderUrl = () => {
 }
 
 /**
- * @summary Create a demonstration Pix order
+ * @summary Create an Efí Pix order
  */
 export const createOrder = async (createOrderInput: CreateOrderInput, options?: Parameters<typeof customFetch>[1]): Promise<RevelaStateResponse> => {
 
@@ -1067,7 +1067,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type CreateOrderMutationVariables = {data: BodyType<CreateOrderInput>}
 
     /**
- * @summary Create a demonstration Pix order
+ * @summary Create an Efí Pix order
  */
 export const useCreateOrder = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOrder>>, TError,CreateOrderMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -1078,6 +1078,80 @@ export const useCreateOrder = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getCreateOrderMutationOptions(options), queryClient);
+    }
+
+export const getRefreshOrderPaymentUrl = (orderId: string,) => {
+
+
+
+
+  return `/api/orders/${orderId}/refresh`
+}
+
+/**
+ * @summary Refresh an order using Efí's verified payment status
+ */
+export const refreshOrderPayment = async (orderId: string, options?: Parameters<typeof customFetch>[1]): Promise<RevelaStateResponse> => {
+
+  return customFetch<RevelaStateResponse>(getRefreshOrderPaymentUrl(orderId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getRefreshOrderPaymentMutationKey = () => ['refreshOrderPayment'] as const;
+
+export const getRefreshOrderPaymentMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof refreshOrderPayment>>, TError,RefreshOrderPaymentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof refreshOrderPayment>>, TError,RefreshOrderPaymentMutationVariables, TContext> => {
+
+const mutationKey = getRefreshOrderPaymentMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof refreshOrderPayment>>, RefreshOrderPaymentMutationVariables> = (props) => {
+          const {orderId} = props ?? {};
+
+          return  refreshOrderPayment(orderId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RefreshOrderPaymentMutationResult = NonNullable<Awaited<ReturnType<typeof refreshOrderPayment>>>
+
+    export type RefreshOrderPaymentMutationError = ErrorType<void>
+    export type RefreshOrderPaymentMutationVariables = {orderId: string}
+
+    /**
+ * @summary Refresh an order using Efí's verified payment status
+ */
+export const useRefreshOrderPayment = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof refreshOrderPayment>>, TError,RefreshOrderPaymentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof refreshOrderPayment>>,
+        TError,
+        RefreshOrderPaymentMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRefreshOrderPaymentMutationOptions(options), queryClient);
     }
 
 export const getSimulateOrderPaymentUrl = (orderId: string,) => {

@@ -374,7 +374,7 @@ export const RevealCellResponse = zod.object({
 
 
 /**
- * @summary Create a demonstration Pix order
+ * @summary Create an Efí Pix order
  */
 export const createOrderBodyPackIdMax = 64;
 
@@ -441,6 +441,76 @@ export const CreateOrderResponse = zod.object({
   "priceCents": zod.number().int().min(1)
 }),
   "cellId": zod.number().int().min(createOrderResponseOrderOneCellIdMin).max(createOrderResponseOrderOneCellIdMax).nullable(),
+  "status": zod.enum(['pending', 'paid', 'expired']),
+  "payload": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "expiresAt": zod.coerce.date()
+}),zod.null()]),
+  "serverTime": zod.coerce.date(),
+  "testPaymentsEnabled": zod.boolean()
+})
+
+
+/**
+ * @summary Refresh an order using Efí's verified payment status
+ */
+export const RefreshOrderPaymentParams = zod.object({
+  "orderId": zod.coerce.string().uuid()
+})
+
+export const refreshOrderPaymentResponseUserOneChancesMin = 0;
+
+export const refreshOrderPaymentResponseCellsItemIdMin = 0;
+export const refreshOrderPaymentResponseCellsItemIdMax = 83;
+
+
+export const refreshOrderPaymentResponsePacksItemIdMax = 64;
+
+
+
+
+
+export const refreshOrderPaymentResponseOrderOneCellIdMin = 0;
+export const refreshOrderPaymentResponseOrderOneCellIdMax = 83;
+
+
+
+export const RefreshOrderPaymentResponse = zod.object({
+  "user": zod.union([zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "email": zod.string().email(),
+  "chances": zod.number().int().min(refreshOrderPaymentResponseUserOneChancesMin),
+  "hasPassword": zod.boolean(),
+  "isAdmin": zod.boolean()
+}),zod.null()]),
+  "cells": zod.array(zod.object({
+  "id": zod.number().int().min(refreshOrderPaymentResponseCellsItemIdMin).max(refreshOrderPaymentResponseCellsItemIdMax),
+  "phase": zod.enum(['closed', 'reserved', 'open']),
+  "isMine": zod.boolean(),
+  "redeemed": zod.boolean(),
+  "redemptionStatus": zod.union([zod.literal('requested'),zod.literal('under_review'),zod.literal('approved'),zod.literal('rejected'),zod.literal('cancelled'),zod.literal('processing'),zod.literal('redeemed'),zod.literal(null)]).nullable(),
+  "item": zod.union([zod.object({
+  "id": zod.number().int().min(1),
+  "type": zod.enum(['pix', 'image']),
+  "name": zod.string(),
+  "valueCents": zod.number().int().nullable(),
+  "imageUrl": zod.string().nullable()
+}),zod.null()]),
+  "reservedUntil": zod.coerce.date().nullable()
+})),
+  "packs": zod.array(zod.object({
+  "id": zod.string().min(1).max(refreshOrderPaymentResponsePacksItemIdMax),
+  "n": zod.number().int().min(1),
+  "priceCents": zod.number().int().min(1)
+})),
+  "order": zod.union([zod.object({
+  "id": zod.string().uuid(),
+  "pack": zod.object({
+  "n": zod.number().int().min(1),
+  "priceCents": zod.number().int().min(1)
+}),
+  "cellId": zod.number().int().min(refreshOrderPaymentResponseOrderOneCellIdMin).max(refreshOrderPaymentResponseOrderOneCellIdMax).nullable(),
   "status": zod.enum(['pending', 'paid', 'expired']),
   "payload": zod.string(),
   "createdAt": zod.coerce.date(),

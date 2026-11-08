@@ -89,7 +89,11 @@ export async function expireReservations(now = new Date()): Promise<void> {
     await tx
       .update(ordersTable)
       .set({ status: "expired" })
-      .where(and(eq(ordersTable.status, "pending"), lte(ordersTable.expiresAt, now)));
+      .where(and(
+        eq(ordersTable.status, "pending"),
+        lte(ordersTable.expiresAt, now),
+        isNull(ordersTable.providerTxid),
+      ));
     await tx
       .update(cellsTable)
       .set({
@@ -187,33 +191,3 @@ export async function getRevelaState(user: User | null) {
   };
 }
 
-const tlv = (id: string, value: string) => id + String(value.length).padStart(2, "0") + value;
-
-function crc16(value: string): string {
-  let crc = 0xffff;
-  for (let i = 0; i < value.length; i += 1) {
-    crc ^= value.charCodeAt(i) << 8;
-    for (let bit = 0; bit < 8; bit += 1) {
-      crc = crc & 0x8000 ? ((crc << 1) ^ 0x1021) & 0xffff : (crc << 1) & 0xffff;
-    }
-  }
-  return crc.toString(16).toUpperCase().padStart(4, "0");
-}
-
-export function makeDemonstrationPixPayload(packCount: number, priceCents: number): string {
-  const transactionId = `TEST${packCount}${Date.now().toString(36)}`.toUpperCase().slice(0, 25);
-  const merchantAccount = tlv("00", "br.gov.bcb.pix") + tlv("01", "teste@exemplo.com");
-  const additionalData = tlv("05", transactionId);
-  const payload =
-    tlv("00", "01") +
-    tlv("26", merchantAccount) +
-    tlv("52", "0000") +
-    tlv("53", "986") +
-    tlv("54", (priceCents / 100).toFixed(2)) +
-    tlv("58", "BR") +
-    tlv("59", "LANCE TESTE") +
-    tlv("60", "SAO PAULO") +
-    tlv("62", additionalData) +
-    "6304";
-  return payload + crc16(payload);
-}
