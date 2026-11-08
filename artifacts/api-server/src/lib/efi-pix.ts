@@ -46,16 +46,26 @@ let cachedAgent: { config: EfiConfig; agent: Agent } | null = null;
 
 function readEnvironment(): EfiEnvironment | null {
   const configured = (process.env.EFI_ENVIRONMENT ?? "homologation").trim().toLowerCase();
-  if (configured === "homologation" || configured === "production") return configured;
+  if (configured === "homologation" || configured === "development") return "homologation";
+  if (configured === "production") return configured;
   return null;
 }
 
 function readConfig(): EfiConfig | null {
   const environment = readEnvironment();
-  const clientId = process.env.EFI_CLIENT_ID?.trim();
-  const clientSecret = process.env.EFI_CLIENT_SECRET?.trim();
-  const certificateBase64 = process.env.EFI_CERTIFICATE_BASE64?.replace(/\s/g, "");
-  const pixKey = process.env.EFI_PIX_KEY?.trim();
+  const isHomologation = environment === "homologation";
+  const suffix = isHomologation ? "_DEVELOPMENT" : "";
+  const clientId = process.env[`EFI_CLIENT_ID${suffix}`]?.trim();
+  const clientSecret = process.env[`EFI_CLIENT_SECRET${suffix}`]?.trim();
+  const certificateBase64 = process.env[`EFI_CERTIFICATE_BASE64${suffix}`]?.replace(/\s/g, "");
+  const pixKey = (
+    isHomologation
+      ? process.env.EFI_PIX_KEY_DEVELOPMENT?.trim() ?? process.env.EFI_PIX_KEY?.trim()
+      : process.env.EFI_PIX_KEY?.trim()
+  );
+  const certificatePassword = isHomologation
+    ? process.env.EFI_CERTIFICATE_PASSWORD_DEVELOPMENT ?? process.env.EFI_CERTIFICATE_PASSWORD ?? ""
+    : process.env.EFI_CERTIFICATE_PASSWORD ?? "";
 
   if (!environment || !clientId || !clientSecret || !certificateBase64 || !pixKey) return null;
   if (!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(certificateBase64)) {
@@ -70,7 +80,7 @@ function readConfig(): EfiConfig | null {
     clientId,
     clientSecret,
     certificate,
-    certificatePassword: process.env.EFI_CERTIFICATE_PASSWORD ?? "",
+    certificatePassword,
     pixKey,
   };
 }
@@ -81,7 +91,7 @@ function hasProductionApproval(): boolean {
 
 export function getEfiPaymentSetupError(): string | null {
   if (!readEnvironment()) {
-    return "EFI_ENVIRONMENT deve ser homologation ou production.";
+    return "EFI_ENVIRONMENT deve ser homologation, development ou production.";
   }
   if (!readConfig()) {
     return "Configure as credenciais, o certificado P12 e a chave Pix da Efí nos Secrets do projeto.";
