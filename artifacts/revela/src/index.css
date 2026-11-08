@@ -133,6 +133,27 @@ button:focus-visible, input:focus-visible, [tabindex="0"]:focus-visible { outlin
 .pack b { font-size:15px; font-weight:600; }
 .pack small { display:block; margin-top:2px; color:var(--muted); font-size:12px; }
 .pack span { font-weight:600; font-variant-numeric:tabular-nums; }
+.pack-intro { display:grid; gap:10px; }
+.pack-explainer { display:flex; align-items:center; gap:9px; padding:10px 12px; border-radius:var(--r-md); background:rgba(111,220,201,.08); color:var(--muted); font-size:12px; line-height:1.4; }
+.pack-explainer .icon { width:16px; height:16px; flex:none; color:var(--accent); }
+.pack-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.pack-option { position:relative; display:grid; align-content:start; gap:4px; min-width:0; min-height:132px; padding:13px; border:0; border-radius:var(--r-lg); background:var(--s2); box-shadow:inset 0 0 0 1px var(--line); text-align:left; cursor:pointer; transition:background 140ms,box-shadow 140ms,transform 140ms var(--ease); }
+.pack-option:active { transform:scale(.98); }
+.pack-option.selected { background:rgba(111,220,201,.1); box-shadow:inset 0 0 0 1.5px var(--accent); }
+.pack-option-head { display:flex; align-items:flex-start; justify-content:space-between; gap:6px; }
+.pack-amount { display:flex; align-items:baseline; gap:5px; font-size:26px; font-weight:650; letter-spacing:-.04em; line-height:1; font-variant-numeric:tabular-nums; }
+.pack-amount small { color:var(--muted); font-size:11px; font-weight:500; letter-spacing:0; }
+.pack-selector { display:grid; place-items:center; width:18px; height:18px; flex:none; border:1px solid var(--line-2); border-radius:50%; color:var(--on-accent); }
+.pack-selector.checked { border-color:var(--accent); background:var(--accent); }
+.pack-selector .icon { width:12px; height:12px; stroke-width:2.5; }
+.pack-total { margin-top:7px; font-size:17px; font-weight:650; letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
+.pack-unit { color:var(--muted); font-size:11px; font-variant-numeric:tabular-nums; }
+.pack-badge { justify-self:start; margin-top:4px; padding:3px 7px; border-radius:var(--r-full); background:var(--s3); color:var(--muted); font-size:10px; font-weight:600; line-height:1.25; }
+.pack-badge.best { background:rgba(111,220,201,.14); color:var(--accent); }
+.pack-confirm { display:grid; gap:9px; }
+.pack-continue { display:flex; justify-content:space-between; gap:12px; padding-inline:18px; }
+.pack-continue:disabled { background:var(--s3); color:var(--muted); }
+.pack-footnote { margin:0; color:var(--muted); font-size:11px; line-height:1.4; text-align:center; }
 .status { justify-self:start; display:inline-flex; align-items:center; gap:8px; padding:6px 12px 6px 10px; border-radius:var(--r-full); background:var(--s2); box-shadow:inset 0 0 0 1px var(--line); font-size:13px; font-weight:500; }
 .status::before { content:""; width:8px; height:8px; border-radius:50%; background:var(--warn); }
 .status.paid::before { background:var(--accent); }
@@ -198,6 +219,7 @@ button:focus-visible, input:focus-visible, [tabindex="0"]:focus-visible { outlin
   .cell:not(.open):hover .box .icon { color:var(--accent); }
   .btn:hover:not(:disabled):not(:active) { filter:brightness(1.08); }
   .btn.ghost:hover:not(:disabled):not(:active),.item:hover,.pack:hover { background:var(--s4); }
+  .pack-option:hover:not(.selected) { background:var(--s3); box-shadow:inset 0 0 0 1px var(--line-2); }
   .avatar:hover { box-shadow:inset 0 0 0 1px var(--accent); }
   .x:hover { background:var(--s3); }
   .link:hover { background:var(--s2); }
@@ -225,6 +247,9 @@ button:focus-visible, input:focus-visible, [tabindex="0"]:focus-visible { outlin
   .btn.full { height:48px; }
   .packs { grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
   .pack { flex-direction:column; align-items:flex-start; justify-content:space-between; gap:20px; min-height:112px; padding:18px; }
+  .pack-option { min-height:142px; padding:15px; }
+  .pack-amount { font-size:29px; }
+  .pack-total { font-size:19px; }
   .pack span { font-size:20px; letter-spacing:-.01em; }
   .pix { grid-template-columns:minmax(0,var(--qr)) minmax(0,1fr); grid-template-rows:repeat(4,auto) 1fr; grid-template-areas:"qr status" "qr clock" "qr copy" "qr sim" "qr hint"; gap:14px 28px; align-items:start; }
   .status { grid-area:status; }
