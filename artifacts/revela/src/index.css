@@ -137,7 +137,7 @@ button:focus-visible, input:focus-visible, [tabindex="0"]:focus-visible { outlin
 .pack-grid legend { padding:0; }
 .pack-option { position:relative; display:flex; align-items:center; gap:14px; min-width:0; min-height:76px; padding:13px 16px; border:0; border-radius:var(--r-lg); background:var(--s2); box-shadow:inset 0 0 0 1px var(--line); cursor:pointer; transition:background 140ms,box-shadow 140ms; }
 .pack-option.selected { background:rgba(111,220,201,.08); box-shadow:inset 0 0 0 2px var(--accent); }
-.pack-option:focus-within { outline:2px solid var(--accent); outline-offset:3px; }
+.pack-option:focus-within:not(.selected) { box-shadow:inset 0 0 0 2px var(--accent); }
 .pack-radio-input { position:absolute; inset:0; width:1px; height:1px; margin:0; opacity:0; }
 .pack-radio { display:grid; place-items:center; width:20px; height:20px; flex:none; border-radius:50%; box-shadow:inset 0 0 0 2px var(--line-2); transition:background 120ms; }
 .pack-radio::after { content:""; width:8px; height:8px; border-radius:50%; background:var(--on-accent); transform:scale(0); transition:transform 140ms var(--ease); }
@@ -220,7 +220,7 @@ button:focus-visible, input:focus-visible, [tabindex="0"]:focus-visible { outlin
   .cell:not(.open):hover .box .icon { color:var(--accent); }
   .btn:hover:not(:disabled):not(:active) { filter:brightness(1.08); }
   .btn.ghost:hover:not(:disabled):not(:active),.item:hover,.pack:hover { background:var(--s4); }
-  .pack-option:hover:not(.selected) { background:var(--s3); box-shadow:inset 0 0 0 1px var(--line-2); }
+  .pack-option:hover:not(.selected):not(:focus-within) { background:var(--s3); box-shadow:inset 0 0 0 1px var(--line-2); }
   .avatar:hover { box-shadow:inset 0 0 0 1px var(--accent); }
   .x:hover { background:var(--s3); }
   .link:hover { background:var(--s2); }
