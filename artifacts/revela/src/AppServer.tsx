@@ -458,7 +458,7 @@ function AppServer() {
       <h1>Minhas células</h1><span className="vcount" data-testid="count-my-cells">{cellCount === 1 ? '1 célula' : `${cellCount} células`}</span>
     </div></div>}
     <main className="scroll">
-      {loading && <div className="empty" role="status"><p className="sub">Carregando dados do servidor…</p></div>}
+      {loading && <div className="empty" role="status"><p className="sub">Carregando…</p></div>}
       {!loading && !snapshot && <div className="empty"><p className="sub">Não foi possível carregar as células.</p><button className="btn" type="button" onClick={() => refreshState().catch(error => setLoadError(messageFrom(error)))}>Tentar novamente</button></div>}
       {!loading && snapshot && view === 'mine' && cellCount === 0 && <div className="empty" data-testid="empty-my-cells">
         <p className="sub">Você ainda não revelou nenhuma célula.</p>
