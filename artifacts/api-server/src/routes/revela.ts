@@ -382,7 +382,13 @@ router.post("/orders", createOrderRateLimiter, async (req, res): Promise<void> =
   if (!user) return;
   const efiSetupError = getEfiPaymentSetupError();
   if (efiSetupError) {
-    sendError(res, 503, efiSetupError, "EFI_NOT_CONFIGURED");
+    req.log.warn({ setupReason: efiSetupError }, "Pix payments are unavailable");
+    sendError(
+      res,
+      503,
+      "Não foi possível iniciar o pagamento agora. Tente novamente mais tarde.",
+      "PAYMENT_UNAVAILABLE",
+    );
     return;
   }
   const parsed = CreateOrderBody.strict().safeParse(req.body);

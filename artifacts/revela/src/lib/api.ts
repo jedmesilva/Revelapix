@@ -19,6 +19,16 @@ export class ApiRequestError extends Error {
   }
 }
 
+const GENERIC_API_ERROR = "Não foi possível concluir esta ação. Tente novamente em instantes.";
+const INTERNAL_ERROR_DETAILS =
+  /\b(?:EFI(?:_[A-Z0-9_]+)?|SUPABASE(?:_[A-Z0-9_]+)?|DATABASE_URL|P12|secrets?|credentials?|credenciais?|certificados?|backend|servidor|server|database|banco\s+de\s+dados|stack(?:\s+trace)?|internal\s+server(?:\s+error)?|exception|typeerror|api|oauth|postgres(?:ql)?|express|node(?:\.js)?)\b/i;
+
+function publicErrorMessage(value: unknown): string {
+  if (typeof value !== "string" || !value.trim()) return GENERIC_API_ERROR;
+  const message = value.trim();
+  return INTERNAL_ERROR_DETAILS.test(message) ? GENERIC_API_ERROR : message;
+}
+
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const response = await fetch(path, {
     ...init,
@@ -35,7 +45,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     ? await response.json() as { error?: string; code?: string }
     : null;
   if (!response.ok) {
-    throw new ApiRequestError(body?.error ?? "Não foi possível concluir a solicitação.", body?.code);
+    throw new ApiRequestError(publicErrorMessage(body?.error), body?.code);
   }
   return body as T;
 }

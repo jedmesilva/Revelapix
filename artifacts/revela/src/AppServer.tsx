@@ -54,13 +54,15 @@ function QRCode({ value }: { value: string }) {
   }, [value]);
   return <div className="qr" data-testid="pix-qr">
     {!value ? <p className="qr-fallback">Preparando o código Pix…</p> :
-      data ? <svg viewBox={`0 0 ${data.count} ${data.count}`} shapeRendering="crispEdges" role="img" aria-label="QR code Pix Efí"><path d={data.path}/></svg> :
+      data ? <svg viewBox={`0 0 ${data.count} ${data.count}`} shapeRendering="crispEdges" role="img" aria-label="Código QR do Pix"><path d={data.path}/></svg> :
       <p className="qr-fallback">QR indisponível. Use o código copia e cola.</p>}
   </div>;
 }
 
 function messageFrom(error: unknown): string {
-  return error instanceof Error ? error.message : 'Não foi possível concluir a solicitação.';
+  return error instanceof ApiRequestError
+    ? error.message
+    : 'Não foi possível concluir esta ação. Tente novamente em instantes.';
 }
 
 function AppServer() {
