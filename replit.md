@@ -11,6 +11,7 @@ Experiência demonstrativa de células reveláveis, com contas, chances, pedidos
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API clients and validation schemas from OpenAPI.
 - `pnpm --filter @workspace/db run push` — apply schema changes to the development database.
 - Required environment: `DATABASE_URL`.
+- Keep `SESSION_SECRET` stable while saved Pix/CPF profiles exist; changing it requires re-encrypting those profiles.
 - Google sign-in also requires `SUPABASE_URL` and `SUPABASE_ANON_KEY`. Enable Google in Supabase Auth and allow the app's origin as a redirect URL; Google credentials belong in the Supabase provider settings.
 
 ## Stack

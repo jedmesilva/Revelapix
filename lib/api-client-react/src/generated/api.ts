@@ -34,7 +34,8 @@ import type {
   RedeemCellInput,
   RedemptionResult,
   RegisterInput,
-  RevelaStateResponse
+  RevelaStateResponse,
+  SavedRedemptionDetailsResponse
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -1029,6 +1030,107 @@ export const useSimulateOrderPayment = <TError = ErrorType<void>,
       > => {
       return useMutation(getSimulateOrderPaymentMutationOptions(options), queryClient);
     }
+
+export const getGetSavedRedemptionDetailsUrl = () => {
+
+
+
+
+  return `/api/account/redemption-details`
+}
+
+/**
+ * @summary Read saved Pix redemption details for the active account
+ */
+export const getSavedRedemptionDetails = async ( options?: Parameters<typeof customFetch>[1]): Promise<SavedRedemptionDetailsResponse> => {
+
+  return customFetch<SavedRedemptionDetailsResponse>(getGetSavedRedemptionDetailsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSavedRedemptionDetailsQueryKey = () => {
+    return [
+    `/api/account/redemption-details`
+    ] as const;
+    }
+
+
+export const getGetSavedRedemptionDetailsQueryOptions = <TData = Awaited<ReturnType<typeof getSavedRedemptionDetails>>, TError = ErrorType<void>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSavedRedemptionDetails>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSavedRedemptionDetailsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSavedRedemptionDetails>>> = ({ signal }) => getSavedRedemptionDetails({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSavedRedemptionDetails>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetSavedRedemptionDetailsQueryResult = NonNullable<Awaited<ReturnType<typeof getSavedRedemptionDetails>>>
+export type GetSavedRedemptionDetailsQueryError = ErrorType<void>
+
+
+export function useGetSavedRedemptionDetails<TData = Awaited<ReturnType<typeof getSavedRedemptionDetails>>, TError = ErrorType<void>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSavedRedemptionDetails>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getSavedRedemptionDetails>>,
+          TError,
+          Awaited<ReturnType<typeof getSavedRedemptionDetails>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetSavedRedemptionDetails<TData = Awaited<ReturnType<typeof getSavedRedemptionDetails>>, TError = ErrorType<void>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSavedRedemptionDetails>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getSavedRedemptionDetails>>,
+          TError,
+          Awaited<ReturnType<typeof getSavedRedemptionDetails>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetSavedRedemptionDetails<TData = Awaited<ReturnType<typeof getSavedRedemptionDetails>>, TError = ErrorType<void>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSavedRedemptionDetails>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Read saved Pix redemption details for the active account
+ */
+
+export function useGetSavedRedemptionDetails<TData = Awaited<ReturnType<typeof getSavedRedemptionDetails>>, TError = ErrorType<void>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSavedRedemptionDetails>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetSavedRedemptionDetailsQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getRedeemCellUrl = () => {
 

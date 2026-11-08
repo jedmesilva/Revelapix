@@ -217,3 +217,31 @@ export interface RedemptionResult {
   status: RedemptionResultStatus;
 }
 
+export type SavedRedemptionDetailsKeyType = typeof SavedRedemptionDetailsKeyType[keyof typeof SavedRedemptionDetailsKeyType];
+
+
+export const SavedRedemptionDetailsKeyType = {
+  cpf: 'cpf',
+  phone: 'phone',
+  email: 'email',
+  evp: 'evp',
+} as const;
+
+export interface SavedRedemptionDetails {
+  keyType: SavedRedemptionDetailsKeyType;
+  /**
+     * @minLength 1
+     * @maxLength 254
+     */
+  pixKey: string;
+  /**
+     * @minLength 11
+     * @maxLength 14
+     */
+  holderCpf: string;
+}
+
+export interface SavedRedemptionDetailsResponse {
+  details: SavedRedemptionDetails | null;
+}
+

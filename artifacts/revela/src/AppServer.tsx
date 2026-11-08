@@ -16,6 +16,7 @@ import {
   changePassword,
   createOrder,
   getGoogleAuthConfig,
+  getSavedRedemptionDetails,
   getRevelaState,
   loginAccount,
   loginWithGoogle,
@@ -103,6 +104,7 @@ function AppServer() {
   const [redeemKey, setRedeemKey] = useState('');
   const [redeemCpf, setRedeemCpf] = useState('');
   const [redeemError, setRedeemError] = useState('');
+  const [redeemProfileLoading, setRedeemProfileLoading] = useState(false);
   const [redeemDone, setRedeemDone] = useState<RedemptionResult | null>(null);
   const [redeemBusy, setRedeemBusy] = useState(false);
   const [accountPage, setAccountPage] = useState<'home' | 'password'>('home');
@@ -116,6 +118,7 @@ function AppServer() {
   const [revealId, setRevealId] = useState<number | null>(null);
   const lastExpiryRefresh = useRef<string | null>(null);
   const googleCallbackStarted = useRef(false);
+  const redemptionProfileRequest = useRef(0);
 
   const user = snapshot?.user ?? null;
   const cells = snapshot?.cells ?? [];
@@ -255,7 +258,15 @@ function AppServer() {
     return () => window.removeEventListener('hashchange', route);
   }, [user]);
 
-  const closeDialog = useCallback(() => setDialog('none'), []);
+  const closeDialog = useCallback(() => {
+    redemptionProfileRequest.current += 1;
+    setRedeemProfileLoading(false);
+    setRedeemType('cpf');
+    setRedeemKey('');
+    setRedeemCpf('');
+    setRedeemDone(null);
+    setDialog('none');
+  }, []);
   const openAuth = (mode: 'in' | 'up', context = '') => {
     setAuthMode(mode);
     setAuthContext(context);
@@ -340,6 +351,11 @@ function AppServer() {
       setDialog('none');
       setPendingCell(null);
       setRedeemDone(null);
+      redemptionProfileRequest.current += 1;
+      setRedeemProfileLoading(false);
+      setRedeemType('cpf');
+      setRedeemKey('');
+      setRedeemCpf('');
       routeTo('all');
     } catch (error) {
       setLoadError(messageFrom(error));
@@ -414,14 +430,37 @@ function AppServer() {
       openAuth('in', 'Entre na sua conta para resgatar o saldo.');
       return;
     }
+    const requestId = ++redemptionProfileRequest.current;
     setRedeemCellId(cell.id);
     setRedeemType('cpf');
     setRedeemKey('');
     setRedeemCpf('');
     setRedeemError('');
+    setRedeemProfileLoading(true);
     setRedeemDone(null);
     setRedeemBusy(false);
     setDialog('redeem');
+    void getSavedRedemptionDetails()
+      .then(({ details }) => {
+        if (redemptionProfileRequest.current !== requestId || !details) return;
+        setRedeemType(details.keyType);
+        setRedeemKey(details.keyType === 'cpf'
+          ? maskCpf(details.pixKey)
+          : details.keyType === 'phone'
+            ? maskPhone(details.pixKey)
+            : details.pixKey);
+        setRedeemCpf(maskCpf(details.holderCpf));
+      })
+      .catch(error => {
+        if (redemptionProfileRequest.current === requestId) {
+          setRedeemError(messageFrom(error));
+        }
+      })
+      .finally(() => {
+        if (redemptionProfileRequest.current === requestId) {
+          setRedeemProfileLoading(false);
+        }
+      });
   };
   const submitRedeem = async (event: FormEvent) => {
     event.preventDefault();
@@ -619,13 +658,13 @@ function AppServer() {
       </div> : <form className="form" onSubmit={submitRedeem} noValidate>
         <div className="info"><div><small>Valor do resgate</small><span data-testid="value-redemption">{selectedRedeemCell?.prizeValueCents != null ? brl.format(selectedRedeemCell.prizeValueCents / 100) : ''}</span></div></div>
         <div className="types" role="group" aria-label="Tipo de chave Pix">
-          {KEY_OPTIONS.map(option => <button key={option.id} type="button" className="chip" aria-pressed={redeemType === option.id} onClick={() => { setRedeemType(option.id); setRedeemKey(''); setRedeemError(''); }} data-testid={`button-key-type-${option.id}`}>{option.label}</button>)}
+          {KEY_OPTIONS.map(option => <button key={option.id} type="button" className="chip" aria-pressed={redeemType === option.id} disabled={redeemProfileLoading} onClick={() => { setRedeemType(option.id); setRedeemKey(''); setRedeemError(''); }} data-testid={`button-key-type-${option.id}`}>{option.label}</button>)}
         </div>
-        <label className="field">Chave Pix<input className="input" value={redeemKey} onChange={e => setRedeemKey(redeemType === 'cpf' ? maskCpf(e.target.value) : redeemType === 'phone' ? maskPhone(e.target.value) : e.target.value)} placeholder={KEY_OPTIONS.find(x => x.id === redeemType)?.ph} inputMode={KEY_OPTIONS.find(x => x.id === redeemType)?.mode as InputHTMLAttributes<HTMLInputElement>['inputMode']} autoComplete="off" autoCapitalize="off" spellCheck={false} data-testid="input-pix-key"/></label>
-        <label className="field">CPF do titular da chave<input className="input" inputMode="numeric" autoComplete="off" placeholder="000.000.000-00" maxLength={14} value={redeemCpf} onChange={e => setRedeemCpf(maskCpf(e.target.value))} data-testid="input-holder-cpf"/></label>
-        <p className="hint">Esta é uma demonstração local; nenhuma transferência real ou verificação de titularidade acontece.</p>
+        <label className="field">Chave Pix<input className="input" disabled={redeemProfileLoading} value={redeemKey} onChange={e => setRedeemKey(redeemType === 'cpf' ? maskCpf(e.target.value) : redeemType === 'phone' ? maskPhone(e.target.value) : e.target.value)} placeholder={KEY_OPTIONS.find(x => x.id === redeemType)?.ph} inputMode={KEY_OPTIONS.find(x => x.id === redeemType)?.mode as InputHTMLAttributes<HTMLInputElement>['inputMode']} autoComplete="off" autoCapitalize="off" spellCheck={false} data-testid="input-pix-key"/></label>
+        <label className="field">CPF do titular da chave<input className="input" disabled={redeemProfileLoading} inputMode="numeric" autoComplete="off" placeholder="000.000.000-00" maxLength={14} value={redeemCpf} onChange={e => setRedeemCpf(maskCpf(e.target.value))} data-testid="input-holder-cpf"/></label>
+        <p className="hint">A chave Pix e o CPF serão salvos criptografados para próximos resgates. Esta é uma demonstração; nenhuma transferência real ou verificação de titularidade acontece.</p>
         {redeemError && <ErrorMessage testId="error-redeem">{redeemError}</ErrorMessage>}
-        <button className="btn full" type="submit" disabled={redeemBusy} data-testid="button-submit-redeem">{redeemBusy ? 'Verificando titular…' : 'Confirmar resgate'}</button>
+        <button className="btn full" type="submit" disabled={redeemBusy || redeemProfileLoading} data-testid="button-submit-redeem">{redeemProfileLoading ? 'Carregando dados…' : redeemBusy ? 'Verificando titular…' : 'Confirmar resgate'}</button>
       </form>}
     </Modal>
   </div>;

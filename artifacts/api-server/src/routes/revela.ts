@@ -6,6 +6,7 @@ import {
   CreateOrderBody,
   GetGoogleAuthConfigResponse,
   GetRevelaStateResponse,
+  GetSavedRedemptionDetailsResponse,
   LoginAccountBody,
   LoginWithGoogleBody,
   RedeemCellBody,
@@ -17,8 +18,17 @@ import {
   SimulateOrderPaymentParams,
   SimulateOrderPaymentResponse,
 } from "@workspace/api-zod";
-import { cellsTable, chancePlansTable, db, ordersTable, sessionsTable, usersTable } from "@workspace/db";
+import {
+  cellsTable,
+  chancePlansTable,
+  db,
+  ordersTable,
+  redemptionProfilesTable,
+  sessionsTable,
+  usersTable,
+} from "@workspace/db";
 import { createSession, deleteSession, getSessionUser, hashPassword, verifyPassword } from "../lib/auth";
+import { decryptRedemptionProfile, encryptRedemptionProfile } from "../lib/redemption-profile";
 import {
   ensureBoard,
   expireReservations,
@@ -511,6 +521,30 @@ function maskPixKey(type: string, value: string): string {
   return `${value.slice(0, 8)}-****`;
 }
 
+router.get("/account/redemption-details", async (req, res): Promise<void> => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+
+  const [savedDetails] = await db
+    .select()
+    .from(redemptionProfilesTable)
+    .where(eq(redemptionProfilesTable.userId, user.id))
+    .limit(1);
+
+  let details: unknown = null;
+  if (savedDetails) {
+    try {
+      details = decryptRedemptionProfile(savedDetails);
+    } catch (error) {
+      req.log.error({ err: error }, "Could not decrypt saved redemption details");
+      sendError(res, 500, "Não foi possível carregar os dados salvos. Informe-os novamente.", "REDEMPTION_DETAILS_UNAVAILABLE");
+      return;
+    }
+  }
+
+  res.json(GetSavedRedemptionDetailsResponse.parse({ details }));
+});
+
 router.post("/redemptions", async (req, res): Promise<void> => {
   const user = await requireUser(req, res);
   if (!user) return;
@@ -534,6 +568,11 @@ router.post("/redemptions", async (req, res): Promise<void> => {
     return;
   }
 
+  const encryptedProfile = encryptRedemptionProfile({
+    keyType: parsed.data.keyType,
+    pixKey: key.value,
+    holderCpf,
+  });
   const [cell] = await db.transaction(async (tx) => {
     const [currentCell] = await tx.select().from(cellsTable)
       .where(eq(cellsTable.id, parsed.data.cellId))
@@ -541,10 +580,27 @@ router.post("/redemptions", async (req, res): Promise<void> => {
     if (!currentCell || currentCell.phase !== "open" || currentCell.ownerUserId !== user.id || currentCell.redeemed) {
       return [];
     }
-    return tx.update(cellsTable)
+    const [redeemedCell] = await tx.update(cellsTable)
       .set({ redeemed: true })
       .where(eq(cellsTable.id, currentCell.id))
       .returning();
+    if (!redeemedCell) return [];
+
+    const updatedAt = new Date();
+    await tx.insert(redemptionProfilesTable)
+      .values({
+        userId: user.id,
+        ...encryptedProfile,
+        updatedAt,
+      })
+      .onConflictDoUpdate({
+        target: redemptionProfilesTable.userId,
+        set: {
+          ...encryptedProfile,
+          updatedAt,
+        },
+      });
+    return [redeemedCell];
   });
   if (!cell) {
     sendError(res, 409, "Esta célula não está disponível para resgate.", "CELL_NOT_REDEEMABLE");
