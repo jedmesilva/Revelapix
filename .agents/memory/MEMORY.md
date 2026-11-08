@@ -3,3 +3,4 @@
 - [OpenAPI no Node 20](openapi-node20.md) — o Orval atual usa `Map.groupBy`, ausente no Node 20 configurado; codegen pode falhar após gerar parte dos clientes.
 - [Catálogo de prêmios](item-catalog.md) — células apontam para itens Pix ou imagem; arquivos de imagem ficam no App Storage.
 - [Hospedagem externa](deployment-hosting.md) — decisão do projeto: interface na Vercel, API Express no Railway, mantendo o monorepo pnpm.
+- [Marca do produto](product-brand.md) — o nome público da plataforma é Revelapix; preserve identificadores técnicos legados nas integrações.

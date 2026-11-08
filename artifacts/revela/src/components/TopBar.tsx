@@ -6,7 +6,7 @@ export function TopBar({ user, onEnter, onBuy, onAccount }: Props) {
   return <header className="top">
     <div className="top-in">
       <svg className="logo" viewBox="0 0 64 64" aria-hidden="true"><path d="M18 3H46A15 15 0 0 1 56.607 7.393L7.393 56.607A15 15 0 0 1 3 46V18A15 15 0 0 1 18 3Z"/><rect x="3" y="3" width="58" height="58" rx="15"/></svg>
-      <span className="brand">Revela</span>
+      <span className="brand">Revelapix</span>
       {user ? <>
         <div className="chances" aria-label={`${user.chances} ${user.chances === 1 ? 'chance' : 'chances'}`} data-testid="display-chances">
           <Gift className="icon" aria-hidden="true"/><b data-testid="value-chances">{user.chances}</b><span className="chip-lbl">{user.chances === 1 ? 'chance' : 'chances'}</span>

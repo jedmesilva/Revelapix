@@ -1,4 +1,4 @@
-# Deploy Revela to Vercel and Railway
+# Deploy Revelapix to Vercel and Railway
 
 The pnpm monorepo stays at the repository root. Deploy the static React/Vite
 artifact to Vercel and the long-running Express API as a Railway service.
@@ -59,7 +59,7 @@ Set runtime variables and secrets in Railway, not in the Vercel frontend:
 - `DATABASE_URL` for the existing PostgreSQL database
 - `SESSION_SECRET`, kept stable across deploys
 - `PUBLIC_APP_ORIGIN` set to the final Vercel app origin, such as
-  `https://revela.example.com`
+  `https://revelapix.example.com`
 - `SUPABASE_URL` and `SUPABASE_ANON_KEY` for Google sign-in
 - The Efí credentials and Pix key for the selected Efí environment
 

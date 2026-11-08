@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Revela is a React/Vite interface backed by an Express API and PostgreSQL. Users can register or sign in with Google, reveal cells, create demonstration Pix orders, and request prize redemptions. Payment simulation is intended only for development; real transfers are not performed by the app.
+Revelapix is a React/Vite interface backed by an Express API and PostgreSQL. Users can register or sign in with Google, reveal cells, create demonstration Pix orders, and request prize redemptions. Payment simulation is intended only for development; real transfers are not performed by the app.
 
 The browser uses the Express API rather than querying application tables directly. The Supabase Data API roles have no access to the `public` application tables; RLS is enabled and forced with no client policies. The Express server connects as `postgres`, which has `BYPASSRLS`, so server-side authorization remains essential.
 

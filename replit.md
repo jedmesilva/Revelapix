@@ -1,6 +1,6 @@
-# Revela
+# Revelapix
 
-Experiência de células reveláveis com contas, chances, cobranças Pix pela Efí e resgates simulados.
+Plataforma de células reveláveis com contas, chances, cobranças Pix pela Efí e resgates simulados.
 
 ## Run & Operate
 
@@ -11,7 +11,7 @@ Experiência de células reveláveis com contas, chances, cobranças Pix pela Ef
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API clients and validation schemas from OpenAPI.
 - `pnpm --filter @workspace/db run push` — apply schema changes to the development database.
 - `pnpm --filter @workspace/db run secure-public-api` — apply the Supabase public-schema security migration after schema changes.
-- `pnpm --filter @workspace/db run verify-public-api-security` — verify that Revela tables fail closed to Supabase API roles.
+- `pnpm --filter @workspace/db run verify-public-api-security` — verify that Revelapix tables fail closed to Supabase API roles.
 - Required environment: `DATABASE_URL`.
 - Store Efí credentials in Replit Secrets, never in source control. Production uses `EFI_CLIENT_ID`, `EFI_CLIENT_SECRET`, and `EFI_CERTIFICATE_BASE64`; homologation uses `EFI_CLIENT_ID_DEVELOPMENT`, `EFI_CLIENT_SECRET_DEVELOPMENT`, and `EFI_CERTIFICATE_BASE64_DEVELOPMENT`. The Client ID, Client Secret, and P12 certificate must come from the same Efí environment. To encode a downloaded P12 certificate on Linux, run `base64 -w0 certificate.p12` and save the output under that environment's certificate secret; do not commit the original certificate.
 - Set `EFI_PIX_KEY` to the Pix key registered with the Efí account. If homologation uses a different Pix key, set `EFI_PIX_KEY_DEVELOPMENT`; otherwise homologation uses `EFI_PIX_KEY`. For password-protected certificates, set `EFI_CERTIFICATE_PASSWORD` and, if different, `EFI_CERTIFICATE_PASSWORD_DEVELOPMENT`.
@@ -43,7 +43,7 @@ Experiência de células reveláveis com contas, chances, cobranças Pix pela Ef
 - Cash movements are append-only and linked to a paid order or completed redemption. Test Pix purchases are recorded separately and never count as real cash; active redemption requests reserve funds but are not cash outflows.
 - Redemption status changes are validated on the server and recorded in an event history.
 - The browser holds only transient form, navigation, and animation state; it requests server state for rendering and cannot authorize business actions.
-- Revela database tables are server-only. RLS is enabled and forced with no Supabase client policies, and `anon`, `authenticated`, and `service_role` have no table privileges in `public`. The Express server remains the only application access path.
+- Revelapix database tables are server-only. RLS is enabled and forced with no Supabase client policies, and `anon`, `authenticated`, and `service_role` have no table privileges in `public`. The Express server remains the only application access path.
 - The current Express database connection uses Supabase's `postgres` role, which has `BYPASSRLS`; RLS does not replace route-level authentication or ownership checks for server queries. Keep those checks server-side.
 - The server confirms Efí charges by matching the provider's completed status, transaction ID, and amount before adding chances, revealing a reserved cell, or recording cash. Homologation payments are recorded as test money.
 - Production payments stay blocked until `EFI_ENVIRONMENT=production` and `EFI_LIVE_PAYMENTS_ENABLED=true` are both configured. Confirm Efí approval and the legal requirements for the chance-based product before enabling them.
