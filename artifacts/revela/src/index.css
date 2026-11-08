@@ -105,7 +105,10 @@ button:focus-visible, input:focus-visible, [tabindex="0"]:focus-visible { outlin
 .box { display:grid; place-items:center; animation:breathe 2.4s ease-in-out infinite; }
 .cell.revealing .box { gap:8px; animation:none; }
 .cell.revealing .icon,.reveal-message { color:var(--accent); }
-.reveal-message { font-size:clamp(9px,10cqw,12px); font-weight:600; line-height:1.1; animation:reveal-status 1.4s ease-in-out infinite; }
+.reveal-message { font-size:clamp(9px,10cqw,12px); font-weight:600; line-height:1.1; white-space:nowrap; }
+.reveal-spinner { position:relative; display:grid; place-items:center; width:48px; aspect-ratio:1; border-radius:50%; }
+.reveal-spinner::before { position:absolute; inset:0; border:2px solid var(--line-2); border-top-color:var(--accent); border-radius:inherit; animation:reveal-spinner-rotate 900ms linear infinite; content:""; }
+.reveal-spinner .icon { position:relative; width:20px; height:20px; }
 .box .icon { width:30px; height:30px; }
 .icon { fill:none; stroke:currentColor; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; }
 .hold { display:grid; justify-items:center; gap:6px; }
@@ -208,7 +211,7 @@ button:focus-visible, input:focus-visible, [tabindex="0"]:focus-visible { outlin
 .item .chev { width:16px; height:16px; color:var(--muted); }
 .auth-layout { display:grid; gap:12px; }
 @keyframes pop { from { opacity:0; transform:scale(.6); } to { opacity:1; transform:scale(1); } }
-@keyframes reveal-status { 0%,100% { opacity:.68; } 50% { opacity:1; } }
+@keyframes reveal-spinner-rotate { to { transform:rotate(1turn); } }
 @keyframes burst { from { opacity:1; transform:translate(-50%,-50%) rotate(var(--a)) translateX(0); } to { opacity:0; transform:translate(-50%,-50%) rotate(var(--a)) translateX(44px); } }
 @keyframes breathe { 50% { transform:scale(1.08); } }
 @keyframes rise { from { opacity:0; transform:translateY(32px); } to { opacity:1; transform:none; } }

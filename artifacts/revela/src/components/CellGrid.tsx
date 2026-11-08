@@ -102,7 +102,10 @@ export function CellGrid({ cells, view, reducedMotion, sparkId, revealingCellId,
           onPointerCancel={() => cancelPress(cell.id)}
           onPointerLeave={event => { if (event.buttons) cancelPress(cell.id); }}
           onClick={() => onCell(cell)} data-testid={`cell-${cell.id + 1}`}>
-          {cell.phase === 'closed' && <div className="box"><Gift className="icon"/>{isRevealing && <span className="reveal-message">Revelando…</span>}</div>}
+          {cell.phase === 'closed' && <div className="box">{isRevealing ? <>
+            <span className="reveal-spinner" aria-hidden="true"><Gift className="icon"/></span>
+            <span className="reveal-message">Revelando…</span>
+          </> : <Gift className="icon"/>}</div>}
           {cell.phase === 'reserved' && <div className="hold"><Clock className="icon"/><span className="t">{formatTime(Math.max(0, left))}</span></div>}
           {cell.phase === 'open' && <>
             <div className={`prize${redemptionStatus ? ' has-redemption-status' : ''}`}>
