@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { randomInt, randomUUID } from "node:crypto";
 import { Router, type IRouter, type Request, type Response } from "express";
 import { and, desc, eq, gt, inArray, isNull, sql } from "drizzle-orm";
 import {
@@ -25,12 +25,20 @@ import {
   db,
   itemsTable,
   ordersTable,
+  prizeAwardsTable,
   redemptionRequestsTable,
   redemptionRequestEventsTable,
   sessionsTable,
   usersTable,
 } from "@workspace/db";
 import { createSession, deleteSession, getSessionUser, hashPassword, verifyPassword } from "../lib/auth";
+import {
+  drawPrizeForCell,
+  getPrizeFundAccount,
+  getPrizeFundSnapshot,
+  prizeFundUsesTestMoney,
+  recordPackagePurchaseContribution,
+} from "../lib/prize-fund";
 import {
   clearGoogleOAuthCookies,
   createGoogleSupabaseClient,
@@ -310,6 +318,10 @@ router.post("/cells/:cellId/reveal", async (req, res): Promise<void> => {
   await ensureBoard();
   await expireReservations();
   const result = await db.transaction(async (tx) => {
+    await tx.execute(cashLedgerLockQuery);
+    const isTest = prizeFundUsesTestMoney();
+    await getPrizeFundAccount(tx, isTest);
+
     const [cell] = await tx.select().from(cellsTable)
       .where(eq(cellsTable.id, params.data.cellId))
       .for("update");
@@ -323,18 +335,14 @@ router.post("/cells/:cellId/reveal", async (req, res): Promise<void> => {
       return { error: "Você está sem chances. Escolha um pacote.", code: "INSUFFICIENT_CHANCES" };
     }
 
+    const draw = await drawPrizeForCell(tx, cell.id, user.id, isTest);
+    if (!draw) {
+      return { error: "Não há itens elegíveis para este sorteio.", code: "NO_ELIGIBLE_PRIZES" };
+    }
+
     await tx.update(usersTable)
       .set({ chances: currentUser.chances - 1 })
       .where(eq(usersTable.id, user.id));
-    await tx.update(cellsTable)
-      .set({
-        phase: "open",
-        ownerUserId: user.id,
-        redeemed: false,
-        reservedByUserId: null,
-        reservedUntil: null,
-      })
-      .where(eq(cellsTable.id, cell.id));
     return { error: null, code: null };
   });
 
@@ -440,6 +448,9 @@ router.post("/orders/:orderId/simulate-payment", async (req, res): Promise<void>
 
   const now = new Date();
   const result = await db.transaction(async (tx) => {
+    await tx.execute(cashLedgerLockQuery);
+    await getPrizeFundAccount(tx, true);
+
     const [order] = await tx.select().from(ordersTable)
       .where(and(eq(ordersTable.id, params.data.orderId), eq(ordersTable.userId, user.id)))
       .for("update");
@@ -475,17 +486,15 @@ router.post("/orders/:orderId/simulate-payment", async (req, res): Promise<void>
       createdByUserId: user.id,
       createdAt: now,
     });
+    await recordPackagePurchaseContribution(tx, order.amountCents, true);
     await tx.update(usersTable)
       .set({ chances: sql`${usersTable.chances} + ${addedChances}` })
       .where(eq(usersTable.id, user.id));
     if (cell && order.cellId !== null) {
-      await tx.update(cellsTable).set({
-        phase: "open",
-        ownerUserId: user.id,
-        redeemed: false,
-        reservedByUserId: null,
-        reservedUntil: null,
-      }).where(eq(cellsTable.id, cell.id));
+      const draw = await drawPrizeForCell(tx, cell.id, user.id, true);
+      if (!draw) {
+        throw new Error("No eligible prize items are available.");
+      }
     }
     return { error: null, code: null };
   });
@@ -577,6 +586,8 @@ router.post("/redemptions", async (req, res): Promise<void> => {
   await ensureBoard();
   const redemption = await db.transaction(async (tx) => {
     await tx.execute(cashLedgerLockQuery);
+    const isTest = prizeFundUsesTestMoney();
+    await getPrizeFundAccount(tx, isTest);
 
     const [currentCell] = await tx.select().from(cellsTable)
       .where(eq(cellsTable.id, parsed.data.cellId))
@@ -599,22 +610,14 @@ router.post("/redemptions", async (req, res): Promise<void> => {
       .where(eq(itemsTable.id, currentCell.itemId));
     if (!item || item.type !== "pix" || item.valueCents === null) return null;
 
-    const [cashTotals] = await tx.select({
-      incomingCents: sql<string>`coalesce(sum(case
-        when ${cashTransactionsTable.type} = 'package_purchase' and ${cashTransactionsTable.isTest} = false
-        then ${cashTransactionsTable.amountCents} else 0 end), 0)::text`,
-      outgoingCents: sql<string>`coalesce(sum(case
-        when ${cashTransactionsTable.type} = 'redemption_payout' and ${cashTransactionsTable.isTest} = false
-        then ${cashTransactionsTable.amountCents} else 0 end), 0)::text`,
-    }).from(cashTransactionsTable);
-    const [reserved] = await tx.select({
-      totalCents: sql<string>`coalesce(sum(${redemptionRequestsTable.amountCents}), 0)::text`,
-    }).from(redemptionRequestsTable)
-      .where(inArray(redemptionRequestsTable.status, activeRedemptionStatuses));
+    const [award] = await tx.select().from(prizeAwardsTable)
+      .where(eq(prizeAwardsTable.cellId, currentCell.id))
+      .for("update");
+    if (!award || award.status !== "awarded" || award.amountCents !== item.valueCents) return null;
+    const fundSnapshot = await getPrizeFundSnapshot(tx, award.isTest);
     const cashAvailableCentsAtRequest =
-      Number(cashTotals?.incomingCents ?? 0)
-      - Number(cashTotals?.outgoingCents ?? 0)
-      - Number(reserved?.totalCents ?? 0);
+      fundSnapshot.cashBalanceCents
+      - Math.max(0, fundSnapshot.pendingAwardsCents - award.amountCents);
 
     const [updatedCell] = await tx.update(cellsTable)
       .set({ redemptionStatus: "requested" })

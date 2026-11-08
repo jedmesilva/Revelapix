@@ -3,6 +3,8 @@ export * from "./cash-transactions";
 export * from "./chance-plans";
 export * from "./items";
 export * from "./orders";
+export * from "./prize-awards";
+export * from "./prize-fund-accounts";
 export * from "./redemption-profiles";
 export * from "./redemption-request-events";
 export * from "./redemption-requests";
