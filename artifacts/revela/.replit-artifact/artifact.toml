@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Revela"
+description = "Recriação do app Revela a partir do HTML fornecido: uma experiência interativa de células reveláveis com conta, chances, compra demonstrativa via Pix e resgate, organizada em componentes reutilizáveis e design system."
+version = "1.0.0"
+id = "artifacts/revela"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18775
+
+[services.development]
+run = "pnpm --filter @workspace/revela run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/revela", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/revela/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18775"
+BASE_PATH = "/"
