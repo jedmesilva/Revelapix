@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, Sparkles, X } from "lucide-react";
+import { X } from "lucide-react";
 import "./_group.css";
 
 const currency = new Intl.NumberFormat("pt-BR", {
@@ -16,7 +16,7 @@ const singleChancePrice = packs.find((pack) => pack.n === 1)?.priceCents;
 const lowestUnitPrice = Math.min(...packs.map((pack) => pack.priceCents / pack.n));
 
 export function Improved() {
-  const [selectedPack, setSelectedPack] = useState<number | null>(null);
+  const [selectedPack, setSelectedPack] = useState(1);
   const selected = packs.find((pack) => pack.n === selectedPack);
 
   return (
@@ -29,14 +29,9 @@ export function Improved() {
               <X className="icon" />
             </button>
           </div>
-          <div className="pack-intro">
-            <p className="sub">Cada chance revela uma célula.</p>
-            <div className="pack-explainer">
-              <Sparkles className="icon" aria-hidden="true" />
-              <span>Compare o valor por chance e escolha seu pacote.</span>
-            </div>
-          </div>
-          <div className="pack-grid" role="group" aria-label="Pacotes de chances disponíveis">
+          <p className="sub">Cada chance revela uma célula.</p>
+          <fieldset className="pack-grid" aria-label="Pacotes de chances disponíveis">
+            <legend className="sr-only">Selecione um pacote de chances</legend>
             {packs.map((pack) => {
               const unitPrice = pack.priceCents / pack.n;
               const savings = singleChancePrice && pack.n > 1
@@ -46,37 +41,45 @@ export function Improved() {
               const isSelected = selectedPack === pack.n;
 
               return (
-                <button
-                  className={`pack-option${isSelected ? " selected" : ""}`}
-                  type="button"
+                <label
+                  className={`pack-option${isSelected ? " selected" : ""}${bestValue ? " is-best" : ""}`}
                   key={pack.n}
-                  aria-pressed={isSelected}
-                  onClick={() => setSelectedPack(pack.n)}
+                  data-testid={`button-pack-${pack.n}`}
                 >
-                  <span className="pack-option-head">
-                    <span className="pack-amount">
-                      {pack.n}
-                      <small>{pack.n === 1 ? "chance" : "chances"}</small>
-                    </span>
-                    <span className={`pack-selector${isSelected ? " checked" : ""}`} aria-hidden="true">
-                      {isSelected && <Check className="icon" />}
+                  <input
+                    className="pack-radio-input"
+                    type="radio"
+                    name="chance-pack"
+                    value={pack.n}
+                    checked={isSelected}
+                    onChange={() => setSelectedPack(pack.n)}
+                  />
+                  <span className="pack-radio" aria-hidden="true" />
+                  <span className="pack-main">
+                    <span className="pack-name">{pack.n} {pack.n === 1 ? "chance" : "chances"}</span>
+                    <span className="pack-unit">
+                      {savings > 0 && singleChancePrice !== undefined && (
+                        <s>{currency.format(singleChancePrice / 100)}</s>
+                      )}
+                      {currency.format(unitPrice / 100)} por chance
                     </span>
                   </span>
-                  <span className="pack-total">{currency.format(pack.priceCents / 100)}</span>
-                  <span className="pack-unit">{currency.format(unitPrice / 100)} por chance</span>
+                  <span className="pack-end">
+                    <span className="pack-total">{currency.format(pack.priceCents / 100)}</span>
+                    {savings > 0 && <span className="pack-badge">−{savings}%</span>}
+                  </span>
                   {bestValue ? (
-                    <span className="pack-badge best">Menor valor por chance</span>
-                  ) : savings > 0 ? (
-                    <span className="pack-badge">-{savings}% por chance</span>
+                    <span className="pack-best">Melhor valor</span>
                   ) : null}
-                </button>
+                </label>
               );
             })}
-          </div>
+          </fieldset>
           <div className="pack-confirm">
             <button className="pack-continue" type="button" disabled={!selected}>
-              <span>{selected ? "Continuar para o Pix" : "Escolha um pacote"}</span>
-              {selected && <span>{currency.format(selected.priceCents / 100)}</span>}
+              {selected
+                ? `Pagar ${currency.format(selected.priceCents / 100)} com Pix`
+                : "Selecione um pacote"}
             </button>
             <p className="pack-footnote">Pix demonstrativo · nenhuma cobrança real será feita</p>
           </div>

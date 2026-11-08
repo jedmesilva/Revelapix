@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type InputHTMLAttributes } from 'react';
-import { AlertCircle, ArrowLeft, Check, ChevronRight, Clock3, Grid2X2, LockKeyhole, Sparkles } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Check, ChevronRight, Clock3, Grid2X2, LockKeyhole } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 import type {
   CellState,
@@ -129,6 +129,7 @@ function AppServer() {
     ? Math.max(0, Math.min(100, left / Math.max(1, Date.parse(order.expiresAt) - Date.parse(order.createdAt)) * 100))
     : 0;
   const packs = snapshot?.packs ?? [];
+  const selectedChancePack = packs.find(pack => pack.n === selectedPackCount);
   const singleChancePrice = packs.find(pack => pack.n === 1)?.priceCents;
   const lowestUnitPrice = packs.length
     ? Math.min(...packs.map(pack => pack.priceCents / pack.n))
@@ -265,6 +266,12 @@ function AppServer() {
     const scroller = document.querySelector('.scroll');
     if (scroller) scroller.scrollTop = 0;
   };
+  const openPacks = (cellId: number | null) => {
+    setPendingCell(cellId);
+    setSelectedPackCount(packs[0]?.n ?? null);
+    setPackError('');
+    setDialog('packs');
+  };
   const showReveal = (cellId: number) => {
     if (reducedMotion) return;
     setRevealId(cellId);
@@ -290,10 +297,7 @@ function AppServer() {
       showReveal(cell.id);
     } catch (error) {
       if (error instanceof ApiRequestError && error.code === 'INSUFFICIENT_CHANCES') {
-        setPendingCell(cell.id);
-        setSelectedPackCount(null);
-        setPackError('');
-        setDialog('packs');
+        openPacks(cell.id);
         return;
       }
       setLoadError(messageFrom(error));
@@ -460,13 +464,11 @@ function AppServer() {
       user={user}
       onEnter={() => openAuth('in')}
       onBuy={() => {
-        setPendingCell(null);
         if (order?.status === 'pending') {
+          setPendingCell(null);
           setDialog('pix');
         } else {
-          setSelectedPackCount(null);
-          setPackError('');
-          setDialog('packs');
+          openPacks(null);
         }
       }}
       onAccount={openAccount}
@@ -509,13 +511,11 @@ function AppServer() {
     </Modal>
 
     <Modal open={dialog === 'packs'} title="Comprar chances" onClose={closeDialog} testId="dialog-packs">
-      <div className="pack-intro">
-        <p className="sub">{pendingCell !== null
-          ? `Você está sem chances. Escolha um pacote para revelar a célula #${pendingCell + 1}.`
-          : 'Cada chance revela uma célula.'}</p>
-        <div className="pack-explainer"><Sparkles className="icon" aria-hidden="true"/><span>Compare o valor por chance e escolha seu pacote.</span></div>
-      </div>
-      <div className="pack-grid" role="group" aria-label="Pacotes de chances disponíveis" data-testid="list-packs">
+      <p className="sub">{pendingCell !== null
+        ? `Você está sem chances. Escolha um pacote para revelar a célula #${pendingCell + 1}.`
+        : 'Cada chance revela uma célula.'}</p>
+      <fieldset className="pack-grid" data-testid="list-packs">
+        <legend className="sr-only">Selecione um pacote de chances</legend>
         {packs.map(pack => {
           const unitPrice = pack.priceCents / pack.n;
           const savings = singleChancePrice && pack.n > 1
@@ -523,37 +523,49 @@ function AppServer() {
             : 0;
           const bestValue = pack.n > 1 && lowestUnitPrice !== null && unitPrice === lowestUnitPrice;
           const selected = selectedPackCount === pack.n;
-          return <button
-            className={`pack-option${selected ? ' selected' : ''}`}
-            type="button"
+          return <label
+            className={`pack-option${selected ? ' selected' : ''}${bestValue ? ' is-best' : ''}`}
             key={pack.n}
-            aria-pressed={selected}
-            onClick={() => { setSelectedPackCount(pack.n); setPackError(''); }}
             data-testid={`button-pack-${pack.n}`}
           >
-            <span className="pack-option-head">
-              <span className="pack-amount">{pack.n}<small>{pack.n === 1 ? 'chance' : 'chances'}</small></span>
-              <span className={`pack-selector${selected ? ' checked' : ''}`} aria-hidden="true">{selected && <Check className="icon"/>}</span>
+            <input
+              className="pack-radio-input"
+              type="radio"
+              name="chance-pack"
+              value={pack.n}
+              checked={selected}
+              onChange={() => { setSelectedPackCount(pack.n); setPackError(''); }}
+            />
+            <span className="pack-radio" aria-hidden="true"/>
+            <span className="pack-main">
+              <span className="pack-name">{plural(pack.n)}</span>
+              <span className="pack-unit">
+                {savings > 0 && singleChancePrice !== undefined && <s>{brl.format(singleChancePrice / 100)}</s>}
+                {brl.format(unitPrice / 100)} por chance
+              </span>
             </span>
-            <span className="pack-total">{brl.format(pack.priceCents / 100)}</span>
-            <span className="pack-unit">{brl.format(unitPrice / 100)} por chance</span>
-            {bestValue
-              ? <span className="pack-badge best">Menor valor por chance</span>
-              : savings > 0 && <span className="pack-badge">-{savings}% por chance</span>}
-          </button>;
+            <span className="pack-end">
+              <span className="pack-total">{brl.format(pack.priceCents / 100)}</span>
+              {savings > 0 && <span className="pack-badge">−{savings}%</span>}
+            </span>
+            {bestValue && <span className="pack-best">Melhor valor</span>}
+          </label>;
         })}
-      </div>
+      </fieldset>
       {packError && <ErrorMessage testId="error-pack-order">{packError}</ErrorMessage>}
       <div className="pack-confirm">
         <button
           className="btn full pack-continue"
           type="button"
-          disabled={selectedPackCount === null || creatingOrder}
+          disabled={!selectedChancePack || creatingOrder}
           onClick={continueWithPack}
           data-testid="button-continue-pack"
         >
-          <span>{creatingOrder ? 'Preparando Pix…' : selectedPackCount === null ? 'Escolha um pacote' : 'Continuar para o Pix'}</span>
-          {selectedPackCount !== null && <span>{brl.format((packs.find(pack => pack.n === selectedPackCount)?.priceCents ?? 0) / 100)}</span>}
+          {creatingOrder
+            ? 'Preparando Pix…'
+            : selectedChancePack
+              ? `Pagar ${brl.format(selectedChancePack.priceCents / 100)} com Pix`
+              : 'Selecione um pacote'}
         </button>
         <p className="pack-footnote">Pix demonstrativo · nenhuma cobrança real será feita</p>
       </div>
