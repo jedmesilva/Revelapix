@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react';
 import { Check, Clock, Gift } from 'lucide-react';
 import type { CellState } from '@workspace/api-client-react';
-import { art, brl, formatTime, redemptionStatusLabels } from '../domain/revela';
+import { brl, formatTime, redemptionStatusLabels } from '../domain/revela';
 
 type Props = { cells: CellState[]; view: 'all' | 'mine'; reducedMotion: boolean; sparkId: number | null; revealId: number | null; onCell: (cell: CellState) => void; onRedeem: (cell: CellState, button: HTMLButtonElement) => void; onCancelRedemption: (cellId: number) => void };
 export function CellGrid({ cells, view, reducedMotion, sparkId, revealId, onCell, onRedeem, onCancelRedemption }: Props) {
@@ -102,7 +102,7 @@ export function CellGrid({ cells, view, reducedMotion, sparkId, revealId, onCell
           {cell.phase === 'reserved' && <div className="hold"><Clock className="icon"/><span className="t">{formatTime(Math.max(0, left))}</span></div>}
           {cell.phase === 'open' && (revealId === cell.id && !reducedMotion ? <div className="box shake"><Gift className="icon"/></div> : <>
             <div className={`prize${redemptionStatus ? ' has-redemption-status' : ''}`}>
-              {item?.type === 'image' ? <img src={item.imageUrl ?? art(cell.id)} alt={item.name} draggable={false}/> :
+              {item?.type === 'image' ? <img className={item.imageUrl ? undefined : 'brand-placeholder'} src={item.imageUrl ?? '/favicon.svg'} alt={item.name} draggable={false}/> :
                 <div className="inner">{item?.type === 'pix' && item.valueCents !== null ? <><div className="stat-value">{brl.format(item.valueCents / 100)}</div><div className="stat-label">Pix</div><button type="button" className="btn" disabled={!isMine || cannotRedeem} onClick={e => { e.stopPropagation(); onRedeem(cell, e.currentTarget); }} data-testid={`button-redeem-${cell.id + 1}`}>{cannotRedeem ? redemptionStatusLabels[cell.redemptionStatus ?? 'redeemed'] : cell.redemptionStatus ? 'Solicitar novamente' : 'Resgatar'}</button>{canCancel && <button type="button" className="link cancel-redemption" onClick={e => { e.stopPropagation(); onCancelRedemption(cell.id); }} data-testid={`button-cancel-redemption-${cell.id + 1}`}>Cancelar</button>}</> : null}
                 </div>}
               {redemptionStatus && <span className="redemption-status">{redemptionStatus}</span>}

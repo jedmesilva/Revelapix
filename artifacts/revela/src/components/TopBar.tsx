@@ -5,7 +5,7 @@ type Props = { user: UserSummary | null; onEnter: () => void; onBuy: () => void;
 export function TopBar({ user, onEnter, onBuy, onAccount }: Props) {
   return <header className="top">
     <div className="top-in">
-      <svg className="logo" viewBox="0 0 64 64" aria-hidden="true"><path d="M18 3H46A15 15 0 0 1 56.607 7.393L7.393 56.607A15 15 0 0 1 3 46V18A15 15 0 0 1 18 3Z"/><rect x="3" y="3" width="58" height="58" rx="15"/></svg>
+      <img className="logo" src="/favicon.svg" alt="" aria-hidden="true"/>
       <span className="brand">Revelapix</span>
       {user ? <>
         <div className="chances" aria-label={`${user.chances} ${user.chances === 1 ? 'chance' : 'chances'}`} data-testid="display-chances">

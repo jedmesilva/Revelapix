@@ -75,8 +75,6 @@ button:focus-visible, input:focus-visible, [tabindex="0"]:focus-visible { outlin
 .top { flex-shrink:0; padding-block:10px; border-bottom:1px solid var(--line); background:var(--bg); }
 .top-in { display:flex; align-items:center; gap:8px; min-height:36px; max-width:var(--page); margin-inline:auto; padding-left:max(16px,env(safe-area-inset-left,0px)); padding-right:max(16px,env(safe-area-inset-right,0px)); }
 .logo { width:28px; height:28px; flex:none; }
-.logo path { fill:var(--accent); }
-.logo rect { fill:none; stroke:var(--accent); stroke-width:6; }
 .brand { margin-right:auto; font-size:18px; font-weight:600; letter-spacing:-.02em; }
 .chances { display:flex; align-items:center; gap:8px; height:36px; padding:0 4px 0 12px; border-radius:var(--r-full); background:var(--s2); box-shadow:inset 0 0 0 1px var(--line); }
 .chances .icon { width:16px; height:16px; color:var(--accent); }
@@ -111,6 +109,7 @@ button:focus-visible, input:focus-visible, [tabindex="0"]:focus-visible { outlin
 .hold .t { color:var(--accent); font-size:clamp(12px,14cqw,18px); font-weight:600; font-variant-numeric:tabular-nums; }
 .prize { position:absolute; inset:0; display:grid; place-items:center; overflow:hidden; border-radius:inherit; background:var(--s1); box-shadow:inset 0 0 0 1px var(--line); animation:pop 220ms ease-out; }
 .prize img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+.prize img.brand-placeholder { inset:50% auto auto 50%; width:46%; height:46%; object-fit:contain; transform:translate(-50%,-50%); }
 .prize .inner { min-width:0; max-width:100%; padding:8px; text-align:center; }
 .prize.has-redemption-status .inner { padding-top:24px; }
 .redemption-status { position:absolute; z-index:1; top:4px; left:4px; right:4px; overflow:hidden; padding:3px 5px; border-radius:var(--r-full); background:rgba(0,0,0,.72); color:var(--text); font-size:clamp(8px,8cqw,11px); font-weight:600; line-height:1.2; text-align:center; text-overflow:ellipsis; white-space:nowrap; pointer-events:none; }
