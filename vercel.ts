@@ -2,7 +2,7 @@ import { deploymentEnv, routes, type VercelConfig } from "@vercel/config/v1";
 
 const railwayApiOrigin = deploymentEnv("RAILWAY_API_ORIGIN");
 
-const config: VercelConfig = {
+export const config: VercelConfig = {
   installCommand: "pnpm install --frozen-lockfile",
   buildCommand: "pnpm --filter @workspace/revela build",
   outputDirectory: "artifacts/revela/dist/public",
@@ -11,5 +11,3 @@ const config: VercelConfig = {
     routes.rewrite("/(.*)", "/index.html"),
   ],
 };
-
-export default config;
