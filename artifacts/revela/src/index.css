@@ -36,7 +36,7 @@
   --icon-sm: 16px;
   --icon-md: 20px;
   --icon-lg: 28px;
-  --gap: 2px;
+  --gap: 12px;
   --min-cell: 140px;
   --page: 1200px;
   --qr: clamp(168px, 36dvh, 232px);
@@ -83,7 +83,7 @@ button:focus-visible, input:focus-visible, [tabindex="0"]:focus-visible { outlin
 .chances b { min-width:1ch; font-size:14px; font-weight:600; font-variant-numeric:tabular-nums; }
 .add, .avatar { display:grid; place-items:center; padding:0; border:0; border-radius:50%; cursor:pointer; transition:transform 120ms var(--ease); }
 .add { width:28px; height:28px; background:var(--accent); color:var(--on-accent); }
-.add .icon { width:16px; height:16px; stroke-width:2.25; }
+.add .icon { width:16px; height:16px; color:var(--on-accent); stroke-width:2.25; }
 .add:active,.avatar:active { transform:scale(.92); }
 .avatar { width:36px; height:36px; background:linear-gradient(135deg,var(--s3),var(--s2)); box-shadow:inset 0 0 0 1px var(--line-2); font-size:14px; font-weight:600; }
 .btn { display:inline-flex; align-items:center; justify-content:center; max-width:100%; min-height:32px; padding:0 14px; border:0; border-radius:var(--r-full); background:var(--accent); color:var(--on-accent); font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; touch-action:manipulation; transition:transform 120ms var(--ease),filter 120ms; }
@@ -197,15 +197,16 @@ button:focus-visible, input:focus-visible, [tabindex="0"]:focus-visible { outlin
   .link:hover { background:var(--s2); }
 }
 @media (min-width:640px) {
-  :root { --gap:12px; --min-cell:160px; --qr:clamp(168px,40dvh,248px); }
+  :root { --min-cell:160px; --qr:clamp(168px,40dvh,248px); }
   .top { padding-block:12px; }
   .top-in { gap:12px; min-height:40px; padding-left:max(24px,env(safe-area-inset-left,0px)); padding-right:max(24px,env(safe-area-inset-right,0px)); }
   .logo { width:32px; height:32px; }
   .chances { height:40px; gap:10px; padding-inline:14px 5px; }
   .chances b { font-size:15px; }
   .chip-lbl { display:inline; color:var(--muted); font-size:14px; }
-  .add { display:inline-flex; align-items:center; gap:6px; width:auto; height:30px; padding:0 14px 0 10px; border-radius:var(--r-full); }
-  .add-lbl { display:inline; color:var(--on-accent); font-size:13px; font-weight:600; }
+  .add { position:relative; display:inline-flex; align-items:center; justify-content:center; width:118px; height:30px; padding:0 10px; border-radius:var(--r-full); }
+  .add .icon { position:absolute; left:12px; }
+  .add-lbl { display:block; width:100%; color:var(--on-accent); font-size:13px; font-weight:600; text-align:center; }
   .avatar { width:40px; height:40px; }
   .btn.enter { height:40px; padding-inline:22px; }
   .grid { padding-top:24px; padding-bottom:48px; padding-left:max(24px,env(safe-area-inset-left,0px)); padding-right:max(24px,env(safe-area-inset-right,0px)); }

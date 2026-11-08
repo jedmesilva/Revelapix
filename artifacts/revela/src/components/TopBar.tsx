@@ -10,7 +10,7 @@ export function TopBar({ user, chances, onEnter, onBuy, onAccount }: Props) {
       {user ? <>
         <div className="chances" aria-label={`${chances} ${chances === 1 ? 'chance' : 'chances'}`} data-testid="display-chances">
           <Gift className="icon" aria-hidden="true"/><b data-testid="value-chances">{chances}</b><span className="chip-lbl">{chances === 1 ? 'chance' : 'chances'}</span>
-          <button className="add" type="button" aria-label="Comprar mais chances" onClick={onBuy} data-testid="button-buy-chances"><Plus className="icon"/><span className="add-lbl">Comprar</span></button>
+          <button className="add" type="button" aria-label="Adicionar chances" onClick={onBuy} data-testid="button-buy-chances"><Plus className="icon"/><span className="add-lbl">Adicionar</span></button>
         </div>
         <button className="avatar" type="button" aria-label="Minha conta" onClick={onAccount} data-testid="button-account">{user.name.trim().charAt(0).toUpperCase()}</button>
       </> : <button className="btn enter" type="button" onClick={onEnter} data-testid="button-enter">Entrar</button>}
