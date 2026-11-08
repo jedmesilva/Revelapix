@@ -538,7 +538,6 @@ function AppServer() {
               ? `Pagar ${brl.format(selectedChancePack.priceCents / 100)} com Pix`
               : 'Selecione um pacote'}
         </button>
-        <p className="pack-footnote">Pagamento via Pix processado pela Efí.</p>
       </div>
     </Modal>
 
