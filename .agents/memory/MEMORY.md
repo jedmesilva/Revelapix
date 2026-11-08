@@ -1,3 +1,4 @@
 - [Autoridade de dados](data-authority.md) — regras e estado persistente ficam no servidor; o client recebe apenas projeções para a interface.
+- [Saldo de caixa](cash-balance.md) — Revela precisa permitir acompanhar o saldo de caixa.
 - [OpenAPI no Node 20](openapi-node20.md) — o Orval atual usa `Map.groupBy`, ausente no Node 20 configurado; codegen pode falhar após gerar parte dos clientes.
 - [Catálogo de prêmios](item-catalog.md) — células apontam para itens Pix ou imagem; arquivos de imagem ficam no App Storage.
