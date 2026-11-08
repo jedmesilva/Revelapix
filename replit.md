@@ -14,6 +14,7 @@ Experiência de células reveláveis com contas, chances, cobranças Pix pela Ef
 - `pnpm --filter @workspace/db run verify-public-api-security` — verify that Revela tables fail closed to Supabase API roles.
 - Required environment: `DATABASE_URL`.
 - Efí secrets: `EFI_CLIENT_ID`, `EFI_CLIENT_SECRET`, `EFI_CERTIFICATE_BASE64` (P12 certificate encoded as base64), and `EFI_PIX_KEY`. If the certificate is password-protected, also set `EFI_CERTIFICATE_PASSWORD`.
+- Store Efí credentials in Replit Secrets, never in source control. Use the Client ID, Client Secret, and P12 certificate generated for the same environment (homologation or production). To encode the downloaded P12 certificate on Linux, run `base64 -w0 certificate.p12` locally and save the output as `EFI_CERTIFICATE_BASE64`; do not commit or upload the original certificate to the repository. Set the non-secret `EFI_ENVIRONMENT` to `homologation` while testing (this is the default), or `production` for live credentials. The Efí application must grant `cob.write` and `cob.read`.
 - `EFI_ENVIRONMENT` defaults to `homologation`; use the matching Efí credentials and certificate. Production also requires `EFI_LIVE_PAYMENTS_ENABLED=true`.
 - Enable the Efí application scopes `cob.write` and `cob.read`. The Pix key must belong to the authenticated Efí account.
 - Efí payment status is checked server-side by polling its API. Do not add a public webhook unless the hosting edge can enforce Efí's required mutual TLS.
