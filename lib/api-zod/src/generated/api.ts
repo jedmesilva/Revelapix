@@ -18,12 +18,23 @@ export const HealthCheckResponse = zod.object({
 
 
 /**
+ * @summary Serve a public catalog image
+ */
+export const GetPublicObjectParams = zod.object({
+  "filePath": zod.coerce.string().describe('Relative image path inside the public object storage bucket.')
+})
+
+export const GetPublicObjectResponse = zod.unknown()
+
+
+/**
  * @summary Read the current application state
  */
 export const getRevelaStateResponseUserOneChancesMin = 0;
 
 export const getRevelaStateResponseCellsItemIdMin = 0;
 export const getRevelaStateResponseCellsItemIdMax = 83;
+
 
 export const getRevelaStateResponsePacksItemIdMax = 64;
 
@@ -50,8 +61,13 @@ export const GetRevelaStateResponse = zod.object({
   "isMine": zod.boolean(),
   "redeemed": zod.boolean(),
   "redemptionStatus": zod.union([zod.literal('requested'),zod.literal('rejected'),zod.literal('cancelled'),zod.literal('under_review'),zod.literal('redeemed'),zod.literal(null)]).nullable(),
-  "prizeValueCents": zod.number().int().nullable(),
-  "prizeKind": zod.union([zod.literal('image'),zod.literal('stat'),zod.literal('icon'),zod.literal(null)]).nullable(),
+  "item": zod.union([zod.object({
+  "id": zod.number().int().min(1),
+  "type": zod.enum(['pix', 'image']),
+  "name": zod.string(),
+  "valueCents": zod.number().int().nullable(),
+  "imageUrl": zod.string().nullable()
+}),zod.null()]),
   "reservedUntil": zod.coerce.date().nullable()
 })),
   "packs": zod.array(zod.object({
@@ -99,6 +115,7 @@ export const registerAccountResponseUserOneChancesMin = 0;
 export const registerAccountResponseCellsItemIdMin = 0;
 export const registerAccountResponseCellsItemIdMax = 83;
 
+
 export const registerAccountResponsePacksItemIdMax = 64;
 
 
@@ -124,8 +141,13 @@ export const RegisterAccountResponse = zod.object({
   "isMine": zod.boolean(),
   "redeemed": zod.boolean(),
   "redemptionStatus": zod.union([zod.literal('requested'),zod.literal('rejected'),zod.literal('cancelled'),zod.literal('under_review'),zod.literal('redeemed'),zod.literal(null)]).nullable(),
-  "prizeValueCents": zod.number().int().nullable(),
-  "prizeKind": zod.union([zod.literal('image'),zod.literal('stat'),zod.literal('icon'),zod.literal(null)]).nullable(),
+  "item": zod.union([zod.object({
+  "id": zod.number().int().min(1),
+  "type": zod.enum(['pix', 'image']),
+  "name": zod.string(),
+  "valueCents": zod.number().int().nullable(),
+  "imageUrl": zod.string().nullable()
+}),zod.null()]),
   "reservedUntil": zod.coerce.date().nullable()
 })),
   "packs": zod.array(zod.object({
@@ -169,6 +191,7 @@ export const loginAccountResponseUserOneChancesMin = 0;
 export const loginAccountResponseCellsItemIdMin = 0;
 export const loginAccountResponseCellsItemIdMax = 83;
 
+
 export const loginAccountResponsePacksItemIdMax = 64;
 
 
@@ -194,8 +217,13 @@ export const LoginAccountResponse = zod.object({
   "isMine": zod.boolean(),
   "redeemed": zod.boolean(),
   "redemptionStatus": zod.union([zod.literal('requested'),zod.literal('rejected'),zod.literal('cancelled'),zod.literal('under_review'),zod.literal('redeemed'),zod.literal(null)]).nullable(),
-  "prizeValueCents": zod.number().int().nullable(),
-  "prizeKind": zod.union([zod.literal('image'),zod.literal('stat'),zod.literal('icon'),zod.literal(null)]).nullable(),
+  "item": zod.union([zod.object({
+  "id": zod.number().int().min(1),
+  "type": zod.enum(['pix', 'image']),
+  "name": zod.string(),
+  "valueCents": zod.number().int().nullable(),
+  "imageUrl": zod.string().nullable()
+}),zod.null()]),
   "reservedUntil": zod.coerce.date().nullable()
 })),
   "packs": zod.array(zod.object({
@@ -284,6 +312,7 @@ export const revealCellResponseUserOneChancesMin = 0;
 export const revealCellResponseCellsItemIdMin = 0;
 export const revealCellResponseCellsItemIdMax = 83;
 
+
 export const revealCellResponsePacksItemIdMax = 64;
 
 
@@ -309,8 +338,13 @@ export const RevealCellResponse = zod.object({
   "isMine": zod.boolean(),
   "redeemed": zod.boolean(),
   "redemptionStatus": zod.union([zod.literal('requested'),zod.literal('rejected'),zod.literal('cancelled'),zod.literal('under_review'),zod.literal('redeemed'),zod.literal(null)]).nullable(),
-  "prizeValueCents": zod.number().int().nullable(),
-  "prizeKind": zod.union([zod.literal('image'),zod.literal('stat'),zod.literal('icon'),zod.literal(null)]).nullable(),
+  "item": zod.union([zod.object({
+  "id": zod.number().int().min(1),
+  "type": zod.enum(['pix', 'image']),
+  "name": zod.string(),
+  "valueCents": zod.number().int().nullable(),
+  "imageUrl": zod.string().nullable()
+}),zod.null()]),
   "reservedUntil": zod.coerce.date().nullable()
 })),
   "packs": zod.array(zod.object({
@@ -355,6 +389,7 @@ export const createOrderResponseUserOneChancesMin = 0;
 export const createOrderResponseCellsItemIdMin = 0;
 export const createOrderResponseCellsItemIdMax = 83;
 
+
 export const createOrderResponsePacksItemIdMax = 64;
 
 
@@ -380,8 +415,13 @@ export const CreateOrderResponse = zod.object({
   "isMine": zod.boolean(),
   "redeemed": zod.boolean(),
   "redemptionStatus": zod.union([zod.literal('requested'),zod.literal('rejected'),zod.literal('cancelled'),zod.literal('under_review'),zod.literal('redeemed'),zod.literal(null)]).nullable(),
-  "prizeValueCents": zod.number().int().nullable(),
-  "prizeKind": zod.union([zod.literal('image'),zod.literal('stat'),zod.literal('icon'),zod.literal(null)]).nullable(),
+  "item": zod.union([zod.object({
+  "id": zod.number().int().min(1),
+  "type": zod.enum(['pix', 'image']),
+  "name": zod.string(),
+  "valueCents": zod.number().int().nullable(),
+  "imageUrl": zod.string().nullable()
+}),zod.null()]),
   "reservedUntil": zod.coerce.date().nullable()
 })),
   "packs": zod.array(zod.object({
@@ -418,6 +458,7 @@ export const simulateOrderPaymentResponseUserOneChancesMin = 0;
 export const simulateOrderPaymentResponseCellsItemIdMin = 0;
 export const simulateOrderPaymentResponseCellsItemIdMax = 83;
 
+
 export const simulateOrderPaymentResponsePacksItemIdMax = 64;
 
 
@@ -443,8 +484,13 @@ export const SimulateOrderPaymentResponse = zod.object({
   "isMine": zod.boolean(),
   "redeemed": zod.boolean(),
   "redemptionStatus": zod.union([zod.literal('requested'),zod.literal('rejected'),zod.literal('cancelled'),zod.literal('under_review'),zod.literal('redeemed'),zod.literal(null)]).nullable(),
-  "prizeValueCents": zod.number().int().nullable(),
-  "prizeKind": zod.union([zod.literal('image'),zod.literal('stat'),zod.literal('icon'),zod.literal(null)]).nullable(),
+  "item": zod.union([zod.object({
+  "id": zod.number().int().min(1),
+  "type": zod.enum(['pix', 'image']),
+  "name": zod.string(),
+  "valueCents": zod.number().int().nullable(),
+  "imageUrl": zod.string().nullable()
+}),zod.null()]),
   "reservedUntil": zod.coerce.date().nullable()
 })),
   "packs": zod.array(zod.object({

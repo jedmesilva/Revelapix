@@ -18,6 +18,25 @@ export interface UserSummary {
   hasPassword: boolean;
 }
 
+export type CellItemType = typeof CellItemType[keyof typeof CellItemType];
+
+
+export const CellItemType = {
+  pix: 'pix',
+  image: 'image',
+} as const;
+
+export interface CellItem {
+  /** @minimum 1 */
+  id: number;
+  type: CellItemType;
+  name: string;
+  /** @nullable */
+  valueCents: number | null;
+  /** @nullable */
+  imageUrl: string | null;
+}
+
 export type CellStatePhase = typeof CellStatePhase[keyof typeof CellStatePhase];
 
 
@@ -41,18 +60,6 @@ export const CellStateRedemptionStatus = {
   redeemed: 'redeemed',
 } as const;
 
-/**
- * @nullable
- */
-export type CellStatePrizeKind = typeof CellStatePrizeKind[keyof typeof CellStatePrizeKind] | null;
-
-
-export const CellStatePrizeKind = {
-  image: 'image',
-  stat: 'stat',
-  icon: 'icon',
-} as const;
-
 export interface CellState {
   /**
      * @minimum 0
@@ -64,10 +71,7 @@ export interface CellState {
   redeemed: boolean;
   /** @nullable */
   redemptionStatus: CellStateRedemptionStatus;
-  /** @nullable */
-  prizeValueCents: number | null;
-  /** @nullable */
-  prizeKind: CellStatePrizeKind;
+  item: CellItem | null;
   /** @nullable */
   reservedUntil: string | null;
 }

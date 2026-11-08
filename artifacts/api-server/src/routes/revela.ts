@@ -19,6 +19,7 @@ import {
   cellsTable,
   chancePlansTable,
   db,
+  itemsTable,
   ordersTable,
   redemptionRequestsTable,
   sessionsTable,
@@ -559,6 +560,7 @@ router.post("/redemptions", async (req, res): Promise<void> => {
     return;
   }
 
+  await ensureBoard();
   const redemption = await db.transaction(async (tx) => {
     const [currentCell] = await tx.select().from(cellsTable)
       .where(eq(cellsTable.id, parsed.data.cellId))
@@ -574,6 +576,11 @@ router.post("/redemptions", async (req, res): Promise<void> => {
     ) {
       return null;
     }
+    if (currentCell.itemId === null) return null;
+    const [item] = await tx.select().from(itemsTable)
+      .where(eq(itemsTable.id, currentCell.itemId));
+    if (!item || item.type !== "pix" || item.valueCents === null) return null;
+
     const [updatedCell] = await tx.update(cellsTable)
       .set({ redemptionStatus: "requested" })
       .where(eq(cellsTable.id, currentCell.id))
@@ -585,7 +592,7 @@ router.post("/redemptions", async (req, res): Promise<void> => {
       .values({
         userId: user.id,
         cellId: currentCell.id,
-        amountCents: currentCell.prizeValueCents,
+        amountCents: item.valueCents,
         status: "requested",
       })
       .returning();

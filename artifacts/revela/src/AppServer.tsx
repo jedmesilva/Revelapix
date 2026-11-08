@@ -560,7 +560,7 @@ function AppServer() {
         <p className="sub">Sua solicitação de {brl.format(redeemDone.amountCents / 100)} para a chave Pix {redeemDone.maskedPixKey} foi registrada. Status: {redemptionStatusLabels[redeemDone.status]}. Nenhuma transferência real ou verificação de titularidade foi feita.</p>
         <button className="btn full" type="button" onClick={closeDialog} data-testid="button-finish-redeem">Concluir</button>
       </div> : <form className="form" onSubmit={submitRedeem} noValidate>
-        <div className="info"><div><small>Valor do resgate</small><span data-testid="value-redemption">{selectedRedeemCell?.prizeValueCents != null ? brl.format(selectedRedeemCell.prizeValueCents / 100) : ''}</span></div></div>
+        <div className="info"><div><small>Valor do resgate</small><span data-testid="value-redemption">{selectedRedeemCell?.item?.valueCents != null ? brl.format(selectedRedeemCell.item.valueCents / 100) : ''}</span></div></div>
         <div className="types" role="group" aria-label="Tipo de chave Pix">
           {KEY_OPTIONS.map(option => <button key={option.id} type="button" className="chip" aria-pressed={redeemType === option.id} onClick={() => { setRedeemType(option.id); setRedeemKey(''); setRedeemError(''); }} data-testid={`button-key-type-${option.id}`}>{option.label}</button>)}
         </div>

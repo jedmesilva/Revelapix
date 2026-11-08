@@ -1,5 +1,13 @@
-import { and, asc, desc, eq, lte } from "drizzle-orm";
-import { cellsTable, chancePlansTable, db, ordersTable, type User, usersTable } from "@workspace/db";
+import { and, asc, desc, eq, inArray, isNull, lte } from "drizzle-orm";
+import {
+  cellsTable,
+  chancePlansTable,
+  db,
+  itemsTable,
+  ordersTable,
+  type User,
+  usersTable,
+} from "@workspace/db";
 
 export const CELL_COUNT = 84;
 export const RESERVATION_MS = 120_000;
@@ -22,8 +30,58 @@ export async function ensureBoard(): Promise<void> {
     prizeValueCents: prizeValueCents(id),
     prizeKind: prizeKind(id),
   }));
-  await db.insert(cellsTable).values(rows).onConflictDoNothing();
+
+  await db.transaction(async (tx) => {
+    await tx.insert(cellsTable).values(rows).onConflictDoNothing();
+
+    // Migrate existing demo prizes into the item catalog without changing cell ownership or status.
+    const cellsWithoutItems = await tx
+      .select()
+      .from(cellsTable)
+      .where(isNull(cellsTable.itemId))
+      .for("update");
+    if (cellsWithoutItems.length === 0) return;
+
+    const catalogRows = cellsWithoutItems.map((cell) => {
+      const isPix = cell.prizeKind === "stat";
+      return {
+        code: `legacy-cell-${cell.id}`,
+        name: isPix ? `Prêmio Pix da célula ${cell.id + 1}` : `Imagem da célula ${cell.id + 1}`,
+        type: isPix ? "pix" as const : "image" as const,
+        valueCents: isPix ? cell.prizeValueCents : null,
+        imagePath: null,
+      };
+    });
+    await tx.insert(itemsTable).values(catalogRows).onConflictDoNothing();
+
+    const codes = catalogRows.map((item) => item.code);
+    const savedItems = await tx
+      .select({ id: itemsTable.id, code: itemsTable.code })
+      .from(itemsTable)
+      .where(inArray(itemsTable.code, codes));
+    const itemIdByCode = new Map(savedItems.map((item) => [item.code, item.id]));
+
+    for (const cell of cellsWithoutItems) {
+      const itemId = itemIdByCode.get(`legacy-cell-${cell.id}`);
+      if (itemId === undefined) {
+        throw new Error(`Could not create the catalog item for cell ${cell.id}.`);
+      }
+      await tx
+        .update(cellsTable)
+        .set({ itemId })
+        .where(and(eq(cellsTable.id, cell.id), isNull(cellsTable.itemId)));
+    }
+  });
   boardInitialized = true;
+}
+
+function getPublicImageUrl(imagePath: string | null): string | null {
+  if (!imagePath) return null;
+  const segments = imagePath.split("/");
+  if (segments.some((segment) => !segment || segment === "." || segment === ".." || segment.includes("\\"))) {
+    throw new Error("Catalog image paths must be relative paths without traversal segments.");
+  }
+  return `/api/storage/public-objects/${segments.map(encodeURIComponent).join("/")}`;
 }
 
 export async function expireReservations(now = new Date()): Promise<void> {
@@ -58,7 +116,11 @@ export async function getRevelaState(user: User | null) {
   const now = new Date();
   await expireReservations(now);
 
-  const cells = await db.select().from(cellsTable).orderBy(cellsTable.id);
+  const cells = await db
+    .select({ cell: cellsTable, item: itemsTable })
+    .from(cellsTable)
+    .leftJoin(itemsTable, eq(cellsTable.itemId, itemsTable.id))
+    .orderBy(cellsTable.id);
   const plans = await db
     .select()
     .from(chancePlansTable)
@@ -76,7 +138,10 @@ export async function getRevelaState(user: User | null) {
 
   return {
     user: user ? toUserSummary(user) : null,
-    cells: cells.map((cell) => {
+    cells: cells.map(({ cell, item }) => {
+      if (cell.itemId === null || item === null) {
+        throw new Error(`Cell ${cell.id} is missing its catalog item.`);
+      }
       const isMine = Boolean(user && cell.ownerUserId === user.id);
       return {
         id: cell.id,
@@ -86,8 +151,15 @@ export async function getRevelaState(user: User | null) {
         redemptionStatus: isMine
           ? cell.redemptionStatus ?? (cell.redeemed ? "redeemed" : null)
           : null,
-        prizeValueCents: cell.phase === "open" ? cell.prizeValueCents : null,
-        prizeKind: cell.phase === "open" ? cell.prizeKind : null,
+        item: cell.phase === "open" && item
+          ? {
+              id: item.id,
+              type: item.type,
+              name: item.name,
+              valueCents: item.type === "pix" ? item.valueCents : null,
+              imageUrl: item.type === "image" ? getPublicImageUrl(item.imagePath) : null,
+            }
+          : null,
         reservedUntil: cell.phase === "reserved" && cell.reservedUntil
           ? cell.reservedUntil.toISOString()
           : null,

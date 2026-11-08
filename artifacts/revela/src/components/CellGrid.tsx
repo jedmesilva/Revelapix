@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react';
 import { Check, Clock, Gift } from 'lucide-react';
 import type { CellState } from '@workspace/api-client-react';
-import { art, brl, formatTime, iconPaths, redemptionStatusLabels } from '../domain/revela';
+import { art, brl, formatTime, redemptionStatusLabels } from '../domain/revela';
 
 type Props = { cells: CellState[]; view: 'all' | 'mine'; reducedMotion: boolean; sparkId: number | null; revealId: number | null; onCell: (cell: CellState) => void; onRedeem: (cell: CellState, button: HTMLButtonElement) => void };
 export function CellGrid({ cells, view, reducedMotion, sparkId, revealId, onCell, onRedeem }: Props) {
@@ -79,7 +79,7 @@ export function CellGrid({ cells, view, reducedMotion, sparkId, revealId, onCell
       {cells.map(cell => {
         const isMine = cell.isMine;
         const left = cell.reservedUntil ? Date.parse(cell.reservedUntil) - now : 0;
-        const kind = cell.prizeKind;
+        const item = cell.item;
         const redemptionStatus = isMine && cell.redemptionStatus
           ? redemptionStatusLabels[cell.redemptionStatus]
           : null;
@@ -98,9 +98,8 @@ export function CellGrid({ cells, view, reducedMotion, sparkId, revealId, onCell
           {cell.phase === 'reserved' && <div className="hold"><Clock className="icon"/><span className="t">{formatTime(Math.max(0, left))}</span></div>}
           {cell.phase === 'open' && (revealId === cell.id && !reducedMotion ? <div className="box shake"><Gift className="icon"/></div> : <>
             <div className={`prize${redemptionStatus ? ' has-redemption-status' : ''}`}>
-              {kind === 'image' ? <img src={art(cell.id)} alt="" draggable={false}/> :
-                <div className="inner">{kind === 'icon' ? <svg className="icon" viewBox="0 0 24 24" aria-hidden="true"><path d={iconPaths[cell.id % iconPaths.length]}/></svg> :
-                  kind === 'stat' && cell.prizeValueCents !== null ? <><div className="stat-value">{brl.format(cell.prizeValueCents / 100)}</div><div className="stat-label">Pix</div><button type="button" className="btn" disabled={!isMine || cannotRedeem} onClick={e => { e.stopPropagation(); onRedeem(cell, e.currentTarget); }} data-testid={`button-redeem-${cell.id + 1}`}>{cannotRedeem ? redemptionStatusLabels[cell.redemptionStatus ?? 'redeemed'] : cell.redemptionStatus ? 'Solicitar novamente' : 'Resgatar'}</button></> : null}
+              {item?.type === 'image' ? <img src={item.imageUrl ?? art(cell.id)} alt={item.name} draggable={false}/> :
+                <div className="inner">{item?.type === 'pix' && item.valueCents !== null ? <><div className="stat-value">{brl.format(item.valueCents / 100)}</div><div className="stat-label">Pix</div><button type="button" className="btn" disabled={!isMine || cannotRedeem} onClick={e => { e.stopPropagation(); onRedeem(cell, e.currentTarget); }} data-testid={`button-redeem-${cell.id + 1}`}>{cannotRedeem ? redemptionStatusLabels[cell.redemptionStatus ?? 'redeemed'] : cell.redemptionStatus ? 'Solicitar novamente' : 'Resgatar'}</button></> : null}
                 </div>}
               {redemptionStatus && <span className="redemption-status">{redemptionStatus}</span>}
             </div>

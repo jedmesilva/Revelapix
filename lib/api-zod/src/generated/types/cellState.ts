@@ -5,8 +5,8 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { CellItem } from './cellItem';
 import type { CellStatePhase } from './cellStatePhase';
-import type { CellStatePrizeKind } from './cellStatePrizeKind';
 import type { CellStateRedemptionStatus } from './cellStateRedemptionStatus';
 
 export interface CellState {
@@ -20,10 +20,7 @@ export interface CellState {
   redeemed: boolean;
   /** @nullable */
   redemptionStatus: CellStateRedemptionStatus;
-  /** @nullable */
-  prizeValueCents: number | null;
-  /** @nullable */
-  prizeKind: CellStatePrizeKind;
+  item: CellItem | null;
   /** @nullable */
   reservedUntil: Date | null;
 }

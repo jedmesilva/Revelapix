@@ -18,6 +18,8 @@ tags:
     description: Cell reveal and redemption operations
   - name: orders
     description: Demonstration Pix orders
+  - name: storage
+    description: Public images used by catalog items
 paths:
   /healthz:
     get:
@@ -32,6 +34,28 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /storage/public-objects/{filePath}:
+    get:
+      operationId: getPublicObject
+      tags: [storage]
+      summary: Serve a public catalog image
+      parameters:
+        - name: filePath
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Relative image path inside the public object storage bucket.
+      responses:
+        "200":
+          description: Public image bytes
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Image not found
   /revela/state:
     get:
       operationId: getRevelaState
@@ -244,9 +268,18 @@ components:
         email: { type: string, format: email }
         chances: { type: integer, minimum: 0 }
         hasPassword: { type: boolean }
+    CellItem:
+      type: object
+      required: [id, type, name, valueCents, imageUrl]
+      properties:
+        id: { type: integer, minimum: 1 }
+        type: { type: string, enum: [pix, image] }
+        name: { type: string }
+        valueCents: { type: [integer, "null"] }
+        imageUrl: { type: [string, "null"] }
     CellState:
       type: object
-      required: [id, phase, isMine, redeemed, redemptionStatus, prizeValueCents, prizeKind, reservedUntil]
+      required: [id, phase, isMine, redeemed, redemptionStatus, item, reservedUntil]
       properties:
         id: { type: integer, minimum: 0, maximum: 83 }
         phase: { type: string, enum: [closed, reserved, open] }
@@ -255,8 +288,10 @@ components:
         redemptionStatus:
           type: [string, "null"]
           enum: [requested, rejected, cancelled, under_review, redeemed, null]
-        prizeValueCents: { type: [integer, "null"] }
-        prizeKind: { type: [string, "null"], enum: [image, stat, icon, null] }
+        item:
+          oneOf:
+            - $ref: "#/components/schemas/CellItem"
+            - type: "null"
         reservedUntil: { type: [string, "null"], format: date-time }
     Pack:
       type: object

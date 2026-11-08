@@ -6,9 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './cellItem';
+export * from './cellItemType';
 export * from './cellState';
 export * from './cellStatePhase';
-export * from './cellStatePrizeKind';
 export * from './cellStateRedemptionStatus';
 export * from './chancePlan';
 export * from './changePasswordInput';
