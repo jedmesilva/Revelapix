@@ -1,45 +1,32 @@
-# [Project name]
+# Revela
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Experiência demonstrativa de células reveláveis, com contas, chances, pedidos Pix de teste e resgates simulados.
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+- Install dependencies with `pnpm install --frozen-lockfile`.
+- Start the managed `artifacts/api-server: API Server` and `artifacts/revela: web` services.
+- `pnpm run typecheck` — typecheck all workspace packages.
+- `pnpm --filter @workspace/api-spec run codegen` — regenerate API clients and validation schemas from OpenAPI.
+- `pnpm --filter @workspace/db run push` — apply schema changes to the development database.
+- Required environment: `DATABASE_URL`.
 
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
-- API: Express 5
-- DB: PostgreSQL + Drizzle ORM
-- Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec)
-- Build: esbuild (CJS bundle)
+- Frontend: React + Vite
+- API: Express 5, with OpenAPI contracts and generated Zod validation
+- Database: PostgreSQL + Drizzle ORM
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/revela` — user interface
+- `artifacts/api-server` — API routes and server-side business rules
+- `lib/db/src/schema` — PostgreSQL schema
+- `lib/api-spec/openapi.yaml` — API source of truth
 
-## Architecture decisions
+## Data authority
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
-
-## Product
-
-_Describe the high-level user-facing capabilities of this app once they exist._
-
-## User preferences
-
-_Populate as you build — explicit user instructions worth remembering across sessions._
-
-## Gotchas
-
-_Populate as you build — sharp edges, "always run X before Y" rules._
-
-## Pointers
-
-- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
+- Accounts, password hashes, sessions, chances, cell ownership, prize data, Pix orders, reservation expiry, and redemption eligibility are server-owned and persisted in PostgreSQL.
+- The browser holds only transient form, navigation, and animation state; it requests server state for rendering and cannot authorize business actions.
+- Pix payment and redemption are demonstrations only. Payment simulation is disabled in production; redemptions do not verify key ownership or transfer money.

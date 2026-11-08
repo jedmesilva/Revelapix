@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react';
 import { Check, Clock, Gift } from 'lucide-react';
-import { art, brl, formatTime, iconPaths, prizeKind, prizeValue, type Cell, type PixOrder } from '../domain/revela';
+import type { CellState } from '@workspace/api-client-react';
+import { art, brl, formatTime, iconPaths } from '../domain/revela';
 
-type Props = { cells: Cell[]; user: string | null; order: PixOrder | null; view: 'all' | 'mine'; reducedMotion: boolean; sparkId: number | null; revealId: number | null; onCell: (cell: Cell) => void; onRedeem: (cell: Cell, button: HTMLButtonElement) => void };
-export function CellGrid({ cells, user, order, view, reducedMotion, sparkId, revealId, onCell, onRedeem }: Props) {
+type Props = { cells: CellState[]; view: 'all' | 'mine'; reducedMotion: boolean; sparkId: number | null; revealId: number | null; onCell: (cell: CellState) => void; onRedeem: (cell: CellState, button: HTMLButtonElement) => void };
+export function CellGrid({ cells, view, reducedMotion, sparkId, revealId, onCell, onRedeem }: Props) {
   const [now, setNow] = useState(Date.now());
   const [pressedId, setPressedId] = useState<number | null>(null);
   const pressTimer = useRef<number | null>(null);
@@ -17,9 +18,9 @@ export function CellGrid({ cells, user, order, view, reducedMotion, sparkId, rev
     if (pressTimer.current !== null) window.clearTimeout(pressTimer.current);
     if (pulseTimer.current !== null) window.clearTimeout(pulseTimer.current);
   }, []);
-  const mine = cells.filter(cell => cell.phase === 'open' && cell.owner === user).length;
-  const shown = view === 'all' ? cells : cells.filter(cell => cell.phase === 'open' && cell.owner === user);
-  const startPress = (cellId: number, phase: Cell['phase'], event: ReactPointerEvent<HTMLDivElement>) => {
+  const mine = cells.filter(cell => cell.isMine).length;
+  const shown = view === 'all' ? cells : cells.filter(cell => cell.isMine);
+  const startPress = (cellId: number, phase: CellState['phase'], event: ReactPointerEvent<HTMLDivElement>) => {
     if (phase === 'open' || !event.isPrimary || event.button !== 0) return;
     if (pressTimer.current !== null) window.clearTimeout(pressTimer.current);
     if (pulseTimer.current !== null) window.clearTimeout(pulseTimer.current);
@@ -76,9 +77,9 @@ export function CellGrid({ cells, user, order, view, reducedMotion, sparkId, rev
   return <>
     <div className={`grid${view === 'mine' ? ' only-mine' : ''}`} role="grid" aria-label="Grade de células" onKeyDown={keyHandler} data-testid="grid-cells">
       {cells.map(cell => {
-        const isMine = cell.phase === 'open' && cell.owner === user;
-        const left = order?.k === cell.id ? order.end - now : 0;
-        const kind = prizeKind(cell.id);
+        const isMine = cell.isMine;
+        const left = cell.reservedUntil ? Date.parse(cell.reservedUntil) - now : 0;
+        const kind = cell.prizeKind;
         return <div key={cell.id} className={`cell${pressedId === cell.id ? ' down' : ''}${cell.phase === 'open' ? ' open' : ''}${cell.phase === 'reserved' ? ' reserved' : ''}${isMine ? ' mine' : ''}`}
           role={cell.phase === 'open' ? 'group' : 'button'} aria-label={cell.phase === 'open' ? `Célula ${cell.id + 1} revelada` : cell.phase === 'reserved' ? `Célula ${cell.id + 1} reservada, abrir o Pix` : `Revelar célula ${cell.id + 1}`}
           tabIndex={cell.id === (shown[0]?.id ?? 0) ? 0 : -1}
@@ -94,7 +95,7 @@ export function CellGrid({ cells, user, order, view, reducedMotion, sparkId, rev
             <div className="prize">
               {kind === 'image' ? <img src={art(cell.id)} alt="" draggable={false}/> :
                 <div className="inner">{kind === 'icon' ? <svg className="icon" viewBox="0 0 24 24" aria-hidden="true"><path d={iconPaths[cell.id % iconPaths.length]}/></svg> :
-                  <><div className="stat-value">{brl.format(prizeValue(cell.id))}</div><div className="stat-label">saldo</div><button type="button" className="btn" disabled={cell.redeemed} onClick={e => { e.stopPropagation(); onRedeem(cell, e.currentTarget); }} data-testid={`button-redeem-${cell.id + 1}`}>{cell.redeemed ? 'Resgatado' : 'Resgatar'}</button></>}
+                  kind === 'stat' && cell.prizeValueCents !== null ? <><div className="stat-value">{brl.format(cell.prizeValueCents / 100)}</div><div className="stat-label">saldo</div><button type="button" className="btn" disabled={!isMine || cell.redeemed} onClick={e => { e.stopPropagation(); onRedeem(cell, e.currentTarget); }} data-testid={`button-redeem-${cell.id + 1}`}>{cell.redeemed ? 'Resgatado' : 'Resgatar'}</button></> : null}
                 </div>}
             </div>
             {!reducedMotion && sparkId === cell.id && Array.from({ length: 8 }, (_, i) => <span key={i} className="spark" style={{ '--a': `${i * 45}deg` } as CSSProperties}/>)}

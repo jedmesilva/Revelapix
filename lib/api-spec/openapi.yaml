@@ -10,6 +10,14 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: revela
+    description: Server-owned application state
+  - name: auth
+    description: Account and session operations
+  - name: cells
+    description: Cell reveal and redemption operations
+  - name: orders
+    description: Demonstration Pix orders
 paths:
   /healthz:
     get:
@@ -24,6 +32,175 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /revela/state:
+    get:
+      operationId: getRevelaState
+      tags: [revela]
+      summary: Read the current application state
+      responses:
+        "200":
+          description: Current state for the active session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RevelaStateResponse"
+  /auth/register:
+    post:
+      operationId: registerAccount
+      tags: [auth]
+      summary: Create an account and session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterInput"
+      responses:
+        "201":
+          description: Account created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RevelaStateResponse"
+        "400":
+          description: Invalid account data
+  /auth/login:
+    post:
+      operationId: loginAccount
+      tags: [auth]
+      summary: Start an account session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Signed in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RevelaStateResponse"
+        "401":
+          description: Invalid credentials
+  /auth/logout:
+    post:
+      operationId: logoutAccount
+      tags: [auth]
+      summary: End the current account session
+      responses:
+        "204":
+          description: Session ended
+  /auth/change-password:
+    post:
+      operationId: changePassword
+      tags: [auth]
+      summary: Change the current account password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangePasswordInput"
+      responses:
+        "204":
+          description: Password changed
+  /cells/{cellId}/reveal:
+    post:
+      operationId: revealCell
+      tags: [cells]
+      summary: Reveal a cell using one chance
+      parameters:
+        - name: cellId
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 83
+      responses:
+        "200":
+          description: Updated state after revealing a cell
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RevelaStateResponse"
+        "401":
+          description: Session required
+        "409":
+          description: Cell or chance is unavailable
+  /orders:
+    post:
+      operationId: createOrder
+      tags: [orders]
+      summary: Create a demonstration Pix order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrderInput"
+      responses:
+        "201":
+          description: Order created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RevelaStateResponse"
+        "401":
+          description: Session required
+        "409":
+          description: Order or cell is unavailable
+  /orders/{orderId}/simulate-payment:
+    post:
+      operationId: simulateOrderPayment
+      tags: [orders]
+      summary: Simulate payment for a demonstration order
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Updated state after simulated payment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RevelaStateResponse"
+        "401":
+          description: Session required
+        "403":
+          description: Simulation disabled in production
+        "409":
+          description: Order is no longer payable
+  /redemptions:
+    post:
+      operationId: redeemCell
+      tags: [cells]
+      summary: Simulate redemption of an owned cell
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RedeemCellInput"
+      responses:
+        "200":
+          description: Demonstration redemption recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RedemptionResult"
+        "400":
+          description: Invalid Pix key or CPF
+        "401":
+          description: Session required
+        "409":
+          description: Cell is not eligible for redemption
 components:
   schemas:
     HealthStatus:
@@ -33,4 +210,100 @@ components:
           type: string
       required:
         - status
+    UserSummary:
+      type: object
+      required: [id, name, email, chances]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        email: { type: string, format: email }
+        chances: { type: integer, minimum: 0 }
+    CellState:
+      type: object
+      required: [id, phase, isMine, redeemed, prizeValueCents, prizeKind, reservedUntil]
+      properties:
+        id: { type: integer, minimum: 0, maximum: 83 }
+        phase: { type: string, enum: [closed, reserved, open] }
+        isMine: { type: boolean }
+        redeemed: { type: boolean }
+        prizeValueCents: { type: [integer, "null"] }
+        prizeKind: { type: [string, "null"], enum: [image, stat, icon, null] }
+        reservedUntil: { type: [string, "null"], format: date-time }
+    Pack:
+      type: object
+      required: [n, priceCents]
+      properties:
+        n: { type: integer, enum: [1, 5, 10, 25] }
+        priceCents: { type: integer, minimum: 1 }
+    PixOrder:
+      type: object
+      required: [id, pack, cellId, status, payload, createdAt, expiresAt]
+      properties:
+        id: { type: string, format: uuid }
+        pack: { $ref: "#/components/schemas/Pack" }
+        cellId: { type: [integer, "null"], minimum: 0, maximum: 83 }
+        status: { type: string, enum: [pending, paid, expired] }
+        payload: { type: string }
+        createdAt: { type: string, format: date-time }
+        expiresAt: { type: string, format: date-time }
+    RevelaStateResponse:
+      type: object
+      required: [user, cells, packs, order, serverTime, testPaymentsEnabled]
+      properties:
+        user:
+          oneOf:
+            - $ref: "#/components/schemas/UserSummary"
+            - type: "null"
+        cells:
+          type: array
+          items: { $ref: "#/components/schemas/CellState" }
+        packs:
+          type: array
+          items: { $ref: "#/components/schemas/Pack" }
+        order:
+          oneOf:
+            - $ref: "#/components/schemas/PixOrder"
+            - type: "null"
+        serverTime: { type: string, format: date-time }
+        testPaymentsEnabled: { type: boolean }
+    RegisterInput:
+      type: object
+      required: [name, email, password]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+        email: { type: string, format: email, maxLength: 254 }
+        password: { type: string, minLength: 6, maxLength: 128 }
+    LoginInput:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email, maxLength: 254 }
+        password: { type: string, minLength: 1, maxLength: 128 }
+    ChangePasswordInput:
+      type: object
+      required: [currentPassword, newPassword]
+      properties:
+        currentPassword: { type: string, minLength: 1, maxLength: 128 }
+        newPassword: { type: string, minLength: 6, maxLength: 128 }
+    CreateOrderInput:
+      type: object
+      required: [packCount]
+      properties:
+        packCount: { type: integer, enum: [1, 5, 10, 25] }
+        cellId: { type: [integer, "null"], minimum: 0, maximum: 83 }
+    RedeemCellInput:
+      type: object
+      required: [cellId, keyType, pixKey, holderCpf]
+      properties:
+        cellId: { type: integer, minimum: 0, maximum: 83 }
+        keyType: { type: string, enum: [cpf, phone, email, evp] }
+        pixKey: { type: string, minLength: 1, maxLength: 254 }
+        holderCpf: { type: string, minLength: 11, maxLength: 14 }
+    RedemptionResult:
+      type: object
+      required: [amountCents, maskedPixKey, status]
+      properties:
+        amountCents: { type: integer, minimum: 1 }
+        maskedPixKey: { type: string }
+        status: { type: string, enum: [simulated] }
 

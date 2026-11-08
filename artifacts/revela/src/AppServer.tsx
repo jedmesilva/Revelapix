@@ -1,0 +1,449 @@
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type InputHTMLAttributes } from 'react';
+import { AlertCircle, ArrowLeft, Check, ChevronRight, Clock3, Grid2X2, LockKeyhole } from 'lucide-react';
+import type {
+  CellState,
+  CreateOrderInputPackCount,
+  RedeemCellInputKeyType,
+  RedemptionResult,
+  RevelaStateResponse,
+} from '@workspace/api-client-react';
+import { CellGrid } from './components/CellGrid';
+import { Modal } from './components/Modal';
+import { TopBar } from './components/TopBar';
+import {
+  changePassword,
+  createOrder,
+  getRevelaState,
+  loginAccount,
+  logoutAccount,
+  redeemCell,
+  registerAccount,
+  revealCell,
+  simulateOrderPayment,
+  ApiRequestError,
+} from './lib/api';
+import { brl, digits, formatTime, maskCpf, maskPhone, plural } from './domain/revela';
+
+type View = 'all' | 'mine';
+type Dialog = 'none' | 'auth' | 'packs' | 'pix' | 'account' | 'redeem';
+type KeyOption = { id: RedeemCellInputKeyType; label: string; ph: string; mode: string };
+const KEY_OPTIONS: KeyOption[] = [
+  { id: 'cpf', label: 'CPF', ph: '000.000.000-00', mode: 'numeric' },
+  { id: 'phone', label: 'Celular', ph: '(11) 91234-5678', mode: 'tel' },
+  { id: 'email', label: 'E-mail', ph: 'voce@email.com', mode: 'email' },
+  { id: 'evp', label: 'Aleatória', ph: '123e4567-e89b-12d3-a456-426614174000', mode: 'text' },
+];
+
+function ErrorMessage({ children, testId }: { children: string; testId: string }) {
+  return <p className="err" role="alert" data-testid={testId}><AlertCircle className="icon"/><span>{children}</span></p>;
+}
+
+function QRCode({ value }: { value: string }) {
+  const data = useMemo<{ count: number; path: string } | null>(() => {
+    const factory = (window as Window & { qrcode?: (version: number, level: string) => { addData: (data: string) => void; make: () => void; getModuleCount: () => number; isDark: (row: number, column: number) => boolean } }).qrcode;
+    if (typeof factory !== 'function') return null;
+    const code = factory(0, 'M');
+    code.addData(value); code.make();
+    const count = code.getModuleCount();
+    let path = '';
+    for (let row = 0; row < count; row++) for (let column = 0; column < count; column++) {
+      if (code.isDark(row, column)) path += `M${column},${row}h1v1h-1z`;
+    }
+    return { count, path };
+  }, [value]);
+  return <div className="qr" data-testid="pix-qr">
+    {data ? <svg viewBox={`0 0 ${data.count} ${data.count}`} shapeRendering="crispEdges" role="img" aria-label="QR code Pix demonstrativo"><path d={data.path}/></svg> :
+      <p className="qr-fallback">QR indisponível. Use o código copia e cola.</p>}
+  </div>;
+}
+
+function messageFrom(error: unknown): string {
+  return error instanceof Error ? error.message : 'Não foi possível concluir a solicitação.';
+}
+
+function AppServer() {
+  const [snapshot, setSnapshot] = useState<RevelaStateResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [serverOffset, setServerOffset] = useState(0);
+  const [view, setView] = useState<View>('all');
+  const [dialog, setDialog] = useState<Dialog>('none');
+  const [authMode, setAuthMode] = useState<'in' | 'up'>('in');
+  const [authContext, setAuthContext] = useState('');
+  const [authName, setAuthName] = useState('');
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPass, setAuthPass] = useState('');
+  const [authError, setAuthError] = useState('');
+  const [authBusy, setAuthBusy] = useState(false);
+  const [pendingCell, setPendingCell] = useState<number | null>(null);
+  const [tick, setTick] = useState(Date.now());
+  const [copyLabel, setCopyLabel] = useState('Copiar código Pix');
+  const [redeemCellId, setRedeemCellId] = useState<number | null>(null);
+  const [redeemType, setRedeemType] = useState<RedeemCellInputKeyType>('cpf');
+  const [redeemKey, setRedeemKey] = useState('');
+  const [redeemCpf, setRedeemCpf] = useState('');
+  const [redeemError, setRedeemError] = useState('');
+  const [redeemDone, setRedeemDone] = useState<RedemptionResult | null>(null);
+  const [redeemBusy, setRedeemBusy] = useState(false);
+  const [accountPage, setAccountPage] = useState<'home' | 'password'>('home');
+  const [accountMessage, setAccountMessage] = useState('');
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordBusy, setPasswordBusy] = useState(false);
+  const [reducedMotion, setReducedMotion] = useState(() => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false);
+  const [sparkId, setSparkId] = useState<number | null>(null);
+  const [revealId, setRevealId] = useState<number | null>(null);
+  const lastExpiryRefresh = useRef<string | null>(null);
+
+  const user = snapshot?.user ?? null;
+  const cells = snapshot?.cells ?? [];
+  const order = snapshot?.order ?? null;
+  const serverNow = tick + serverOffset;
+  const left = order ? Math.max(0, Date.parse(order.expiresAt) - serverNow) : 0;
+  const cellCount = cells.filter(cell => cell.isMine).length;
+  const selectedRedeemCell = cells.find(cell => cell.id === redeemCellId);
+  const statusLabel = order?.status === 'paid' ? 'Pagamento confirmado' : order?.status === 'expired' ? 'Pix expirado' : 'Aguardando pagamento';
+  const progress = order
+    ? Math.max(0, Math.min(100, left / Math.max(1, Date.parse(order.expiresAt) - Date.parse(order.createdAt)) * 100))
+    : 0;
+
+  const acceptSnapshot = (next: RevelaStateResponse) => {
+    setSnapshot(next);
+    setServerOffset(Date.parse(next.serverTime) - Date.now());
+    setLoadError('');
+    setLoading(false);
+  };
+
+  const refreshState = useCallback(async () => {
+    const next = await getRevelaState();
+    setSnapshot(next);
+    setServerOffset(Date.parse(next.serverTime) - Date.now());
+    setLoadError('');
+    setLoading(false);
+    return next;
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    getRevelaState().then(next => {
+      if (active) acceptSnapshot(next);
+    }).catch(error => {
+      if (active) {
+        setLoadError(messageFrom(error));
+        setLoading(false);
+      }
+    });
+    return () => { active = false; };
+  }, []);
+  useEffect(() => {
+    const id = window.setInterval(() => setTick(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, []);
+  useEffect(() => {
+    const refresh = () => {
+      if (document.visibilityState === 'visible') {
+        refreshState().catch(error => setLoadError(messageFrom(error)));
+      }
+    };
+    const id = window.setInterval(refresh, 15000);
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', refresh);
+    return () => {
+      window.clearInterval(id);
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', refresh);
+    };
+  }, [refreshState]);
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const update = () => setReducedMotion(media.matches);
+    media.addEventListener?.('change', update);
+    return () => media.removeEventListener?.('change', update);
+  }, []);
+  useEffect(() => {
+    if (!order || order.status !== 'pending' || left > 0 || lastExpiryRefresh.current === order.id) return;
+    lastExpiryRefresh.current = order.id;
+    refreshState().catch(error => setLoadError(messageFrom(error)));
+  }, [left, order, refreshState]);
+  useEffect(() => {
+    const route = () => setView(window.location.hash === '#minhas-celulas' && user ? 'mine' : 'all');
+    window.addEventListener('hashchange', route);
+    route();
+    return () => window.removeEventListener('hashchange', route);
+  }, [user]);
+
+  const closeDialog = useCallback(() => setDialog('none'), []);
+  const openAuth = (mode: 'in' | 'up', context = '') => {
+    setAuthMode(mode);
+    setAuthContext(context);
+    setAuthError('');
+    setDialog('auth');
+  };
+  const routeTo = (next: View) => {
+    setView(next);
+    window.location.hash = next === 'mine' ? 'minhas-celulas' : 'todas';
+    const scroller = document.querySelector('.scroll');
+    if (scroller) scroller.scrollTop = 0;
+  };
+  const showReveal = (cellId: number) => {
+    if (reducedMotion) return;
+    setRevealId(cellId);
+    window.setTimeout(() => {
+      setRevealId(current => current === cellId ? null : current);
+      setSparkId(cellId);
+      window.setTimeout(() => setSparkId(current => current === cellId ? null : current), 650);
+    }, 380);
+  };
+
+  const onCell = async (cell: CellState) => {
+    if (cell.phase === 'reserved') {
+      if (order?.status === 'pending' && order.cellId === cell.id) setDialog('pix');
+      return;
+    }
+    if (cell.phase !== 'closed') return;
+    if (!user) {
+      openAuth('in', 'Entre na sua conta para revelar células.');
+      return;
+    }
+    try {
+      acceptSnapshot(await revealCell(cell.id));
+      showReveal(cell.id);
+    } catch (error) {
+      if (error instanceof ApiRequestError && error.code === 'INSUFFICIENT_CHANCES') {
+        setPendingCell(cell.id);
+        setDialog('packs');
+        return;
+      }
+      setLoadError(messageFrom(error));
+    }
+  };
+
+  const selectPack = async (packCount: CreateOrderInputPackCount) => {
+    try {
+      acceptSnapshot(await createOrder({ packCount, cellId: pendingCell }));
+      setDialog('pix');
+    } catch (error) {
+      setLoadError(messageFrom(error));
+    }
+  };
+
+  const simulatePayment = async () => {
+    if (!order || order.status !== 'pending' || !snapshot?.testPaymentsEnabled) return;
+    try {
+      acceptSnapshot(await simulateOrderPayment(order.id));
+      window.setTimeout(() => {
+        setDialog('none');
+        refreshState().catch(error => setLoadError(messageFrom(error)));
+      }, 900);
+    } catch (error) {
+      setLoadError(messageFrom(error));
+    }
+  };
+
+  const signOut = async () => {
+    try {
+      await logoutAccount();
+      acceptSnapshot(await getRevelaState());
+      setDialog('none');
+      setPendingCell(null);
+      setRedeemDone(null);
+      routeTo('all');
+    } catch (error) {
+      setLoadError(messageFrom(error));
+    }
+  };
+
+  const submitAuth = async (event: FormEvent) => {
+    event.preventDefault();
+    setAuthBusy(true);
+    setAuthError('');
+    try {
+      const next = authMode === 'up'
+        ? await registerAccount({ name: authName, email: authEmail, password: authPass })
+        : await loginAccount({ email: authEmail, password: authPass });
+      acceptSnapshot(next);
+      setDialog('none');
+      setAuthPass('');
+    } catch (error) {
+      setAuthError(messageFrom(error));
+    } finally {
+      setAuthBusy(false);
+    }
+  };
+
+  const openAccount = () => {
+    setAccountPage('home');
+    setAccountMessage('');
+    setDialog('account');
+  };
+  const submitPassword = async (event: FormEvent) => {
+    event.preventDefault();
+    setPasswordBusy(true);
+    setPasswordError('');
+    try {
+      await changePassword({ currentPassword: oldPassword, newPassword });
+      setAccountPage('home');
+      setAccountMessage('Senha alterada.');
+      setOldPassword('');
+      setNewPassword('');
+      acceptSnapshot(await getRevelaState());
+    } catch (error) {
+      setPasswordError(messageFrom(error));
+    } finally {
+      setPasswordBusy(false);
+    }
+  };
+
+  const openRedeem = (cell: CellState) => {
+    if (!user) {
+      openAuth('in', 'Entre na sua conta para resgatar o saldo.');
+      return;
+    }
+    setRedeemCellId(cell.id);
+    setRedeemType('cpf');
+    setRedeemKey('');
+    setRedeemCpf('');
+    setRedeemError('');
+    setRedeemDone(null);
+    setRedeemBusy(false);
+    setDialog('redeem');
+  };
+  const submitRedeem = async (event: FormEvent) => {
+    event.preventDefault();
+    if (redeemCellId === null) return;
+    setRedeemBusy(true);
+    setRedeemError('');
+    try {
+      const result = await redeemCell({
+        cellId: redeemCellId,
+        keyType: redeemType,
+        pixKey: redeemKey,
+        holderCpf: redeemCpf,
+      });
+      setRedeemDone(result);
+      await refreshState();
+    } catch (error) {
+      setRedeemError(messageFrom(error));
+    } finally {
+      setRedeemBusy(false);
+    }
+  };
+
+  const copyPix = async () => {
+    if (!order) return;
+    try { await navigator.clipboard.writeText(order.payload); }
+    catch {
+      const area = document.createElement('textarea');
+      area.value = order.payload;
+      area.style.position = 'fixed';
+      area.style.opacity = '0';
+      document.body.appendChild(area);
+      area.select();
+      try { document.execCommand('copy'); } catch { /* clipboard unavailable */ }
+      area.remove();
+    }
+    setCopyLabel('Código copiado');
+    window.setTimeout(() => setCopyLabel('Copiar código Pix'), 1500);
+  };
+
+  return <div className="app-shell">
+    <TopBar
+      user={user}
+      onEnter={() => openAuth('in')}
+      onBuy={() => { setPendingCell(null); setDialog(order?.status === 'pending' ? 'pix' : 'packs'); }}
+      onAccount={openAccount}
+    />
+    {loadError && <div role="alert" className="err" style={{ margin: '12px auto', maxWidth: 720 }}><AlertCircle className="icon"/><span>{loadError}</span></div>}
+    {view === 'mine' && <div className="viewbar"><div className="viewbar-in">
+      <button className="back" type="button" aria-label="Voltar para todas as células" onClick={() => routeTo('all')} data-testid="button-back-all"><ArrowLeft className="icon"/></button>
+      <h1>Minhas células</h1><span className="vcount" data-testid="count-my-cells">{cellCount === 1 ? '1 célula' : `${cellCount} células`}</span>
+    </div></div>}
+    <main className="scroll">
+      {loading && <div className="empty" role="status"><p className="sub">Carregando dados do servidor…</p></div>}
+      {!loading && !snapshot && <div className="empty"><p className="sub">Não foi possível carregar as células.</p><button className="btn" type="button" onClick={() => refreshState().catch(error => setLoadError(messageFrom(error)))}>Tentar novamente</button></div>}
+      {!loading && snapshot && view === 'mine' && cellCount === 0 && <div className="empty" data-testid="empty-my-cells">
+        <p className="sub">Você ainda não revelou nenhuma célula.</p>
+        <button className="btn" type="button" onClick={() => routeTo('all')} data-testid="button-see-all">Ver todas as células</button>
+      </div>}
+      {!loading && snapshot && <CellGrid cells={cells} view={view} reducedMotion={reducedMotion} sparkId={sparkId} revealId={revealId} onCell={onCell} onRedeem={openRedeem}/>}
+    </main>
+
+    <Modal open={dialog === 'auth'} title={authMode === 'up' ? 'Criar conta' : 'Entrar'} onClose={closeDialog} testId="dialog-auth">
+      <p className="sub">{authContext || (authMode === 'up' ? 'Crie sua conta para ganhar chances e revelar células.' : 'Entre para ver suas chances e revelar células.')}</p>
+      <form className="form" onSubmit={submitAuth} noValidate>
+        {authMode === 'up' && <label className="field">Nome<input className="input" autoComplete="name" value={authName} onChange={e => setAuthName(e.target.value)} data-testid="input-name"/></label>}
+        <label className="field">E-mail<input className="input" type="email" autoComplete="email" inputMode="email" value={authEmail} onChange={e => setAuthEmail(e.target.value)} data-testid="input-email"/></label>
+        <label className="field">Senha<input className="input" type="password" autoComplete={authMode === 'up' ? 'new-password' : 'current-password'} value={authPass} onChange={e => setAuthPass(e.target.value)} data-testid="input-password"/></label>
+        {authError && <ErrorMessage testId="error-auth">{authError}</ErrorMessage>}
+        <button className="btn full" type="submit" disabled={authBusy} data-testid="button-submit-auth">{authBusy ? 'Aguarde…' : authMode === 'up' ? 'Criar conta' : 'Entrar'}</button>
+      </form>
+      <button className="link" type="button" onClick={() => { setAuthMode(authMode === 'in' ? 'up' : 'in'); setAuthError(''); }} data-testid="button-switch-auth">{authMode === 'up' ? 'Já tem conta? Entrar' : 'Não tem conta? Criar conta'}</button>
+    </Modal>
+
+    <Modal open={dialog === 'packs'} title="Comprar chances" onClose={closeDialog} testId="dialog-packs">
+      <p className="sub">{pendingCell !== null ? `Você está sem chances. Escolha um pacote para revelar a célula #${pendingCell + 1}.` : 'Cada chance revela uma célula.'}</p>
+      <div className="packs" data-testid="list-packs">
+        {(snapshot?.packs ?? []).map(pack => <button className="pack" type="button" key={pack.n} onClick={() => selectPack(pack.n)} data-testid={`button-pack-${pack.n}`}>
+          <div><b>{plural(pack.n)}</b><small>{brl.format(pack.priceCents / pack.n / 100)} por chance</small></div><span>{brl.format(pack.priceCents / 100)}</span>
+        </button>)}
+      </div>
+    </Modal>
+
+    <Modal open={dialog === 'pix'} title="Pagar com Pix" onClose={closeDialog} wide testId="dialog-pix">
+      {order && <>
+        <p className="sub">{plural(order.pack.n)} · {brl.format(order.pack.priceCents / 100)}</p>
+        <div className="pix">
+          <div className={`status ${order.status}`} data-testid="status-payment">{statusLabel}</div>
+          <QRCode value={order.payload}/>
+          <div className="clock"><Clock3 className="icon"/><span data-testid="value-pix-timer">{order.status === 'paid' ? 'pago' : order.status === 'expired' ? '00:00' : formatTime(left)}</span><div className="bar"><i style={{ width: `${order.status === 'pending' ? progress : 0}%` }}/></div></div>
+          <button className="btn full" id="copy" type="button" disabled={order.status !== 'pending'} onClick={copyPix} data-testid="button-copy-pix">{copyLabel}</button>
+          {snapshot?.testPaymentsEnabled && <button className="btn full ghost" id="sim" type="button" disabled={order.status !== 'pending'} onClick={simulatePayment} data-testid="button-simulate-payment">Simular pagamento (teste)</button>}
+          <p className="hint" id="hint" data-testid="text-payment-hint">
+            {order.status === 'pending' ? `${order.cellId !== null ? `A célula #${order.cellId + 1} está reservada enquanto o tempo corre e será revelada ao pagar. ` : ''}Fechar esta janela não cancela o pedido. Este Pix é apenas demonstrativo.` :
+              order.status === 'paid' ? (order.cellId !== null ? 'Abrindo sua célula…' : 'Chances adicionadas.') :
+              `O Pix expirou${order.cellId !== null ? ' e a célula foi liberada.' : '.'}`}
+          </p>
+        </div>
+      </>}
+    </Modal>
+
+    <Modal open={dialog === 'account'} title={accountPage === 'home' ? 'Minha conta' : 'Alterar senha'} onClose={closeDialog} testId="dialog-account">
+      {user && accountPage === 'home' ? <div className="form">
+        <div className="info"><div><small>Nome</small><span data-testid="text-account-name">{user.name}</span></div><div><small>E-mail</small><span data-testid="text-account-email">{user.email}</span></div></div>
+        {accountMessage && <p className="hint" data-testid="status-account-message">{accountMessage}</p>}
+        <nav className="menu" aria-label="Minha conta">
+          <button className="item" type="button" onClick={() => { setDialog('none'); routeTo('mine'); }} data-testid="button-account-cells"><Grid2X2 className="icon"/><span className="lbl">Minhas células</span><span className="meta">{cellCount || ''}</span><ChevronRight className="icon chev"/></button>
+          <button className="item" type="button" onClick={() => { setAccountPage('password'); setPasswordError(''); }} data-testid="button-account-password"><LockKeyhole className="icon"/><span className="lbl">Alterar senha</span><ChevronRight className="icon chev"/></button>
+        </nav>
+        <button className="btn full" type="button" onClick={signOut} data-testid="button-sign-out">Sair</button>
+      </div> : <form className="form" onSubmit={submitPassword} noValidate>
+        <label className="field">Senha atual<input className="input" type="password" autoComplete="current-password" value={oldPassword} onChange={e => setOldPassword(e.target.value)} data-testid="input-old-password"/></label>
+        <label className="field">Nova senha<input className="input" type="password" autoComplete="new-password" value={newPassword} onChange={e => setNewPassword(e.target.value)} data-testid="input-new-password"/></label>
+        {passwordError && <ErrorMessage testId="error-password">{passwordError}</ErrorMessage>}
+        <button className="btn full" type="submit" disabled={passwordBusy} data-testid="button-save-password">{passwordBusy ? 'Salvando…' : 'Salvar senha'}</button>
+        <button className="link" type="button" onClick={() => setAccountPage('home')} data-testid="button-back-account">Voltar</button>
+      </form>}
+    </Modal>
+
+    <Modal open={dialog === 'redeem'} title={redeemDone ? 'Resgate solicitado' : 'Resgatar saldo'} onClose={closeDialog} testId="dialog-redeem">
+      {redeemDone ? <div className="done">
+        <div className="ok"><Check className="icon"/></div>
+        <p className="sub">A simulação registrou o resgate demonstrativo de {brl.format(redeemDone.amountCents / 100)} para a chave Pix {redeemDone.maskedPixKey}. Nenhuma transferência real ou verificação de titularidade foi feita.</p>
+        <button className="btn full" type="button" onClick={closeDialog} data-testid="button-finish-redeem">Concluir</button>
+      </div> : <form className="form" onSubmit={submitRedeem} noValidate>
+        <div className="info"><div><small>Valor do resgate</small><span data-testid="value-redemption">{selectedRedeemCell?.prizeValueCents != null ? brl.format(selectedRedeemCell.prizeValueCents / 100) : ''}</span></div></div>
+        <div className="types" role="group" aria-label="Tipo de chave Pix">
+          {KEY_OPTIONS.map(option => <button key={option.id} type="button" className="chip" aria-pressed={redeemType === option.id} onClick={() => { setRedeemType(option.id); setRedeemKey(''); setRedeemError(''); }} data-testid={`button-key-type-${option.id}`}>{option.label}</button>)}
+        </div>
+        <label className="field">Chave Pix<input className="input" value={redeemKey} onChange={e => setRedeemKey(redeemType === 'cpf' ? maskCpf(e.target.value) : redeemType === 'phone' ? maskPhone(e.target.value) : e.target.value)} placeholder={KEY_OPTIONS.find(x => x.id === redeemType)?.ph} inputMode={KEY_OPTIONS.find(x => x.id === redeemType)?.mode as InputHTMLAttributes<HTMLInputElement>['inputMode']} autoComplete="off" autoCapitalize="off" spellCheck={false} data-testid="input-pix-key"/></label>
+        <label className="field">CPF do titular da chave<input className="input" inputMode="numeric" autoComplete="off" placeholder="000.000.000-00" maxLength={14} value={redeemCpf} onChange={e => setRedeemCpf(maskCpf(e.target.value))} data-testid="input-holder-cpf"/></label>
+        <p className="hint">Esta é uma demonstração local; nenhuma transferência real ou verificação de titularidade acontece.</p>
+        {redeemError && <ErrorMessage testId="error-redeem">{redeemError}</ErrorMessage>}
+        <button className="btn full" type="submit" disabled={redeemBusy} data-testid="button-submit-redeem">{redeemBusy ? 'Verificando titular…' : 'Confirmar resgate'}</button>
+      </form>}
+    </Modal>
+  </div>;
+}
+
+export default AppServer;

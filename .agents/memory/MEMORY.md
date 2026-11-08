@@ -1,0 +1,1 @@
+- [Autoridade de dados](data-authority.md) — regras e estado persistente ficam no servidor; o client recebe apenas projeções para a interface.
