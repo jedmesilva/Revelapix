@@ -39,7 +39,7 @@ function ErrorMessage({ children, testId }: { children: string; testId: string }
   return <p className="err" role="alert" data-testid={testId}><AlertCircle className="icon"/><span>{children}</span></p>;
 }
 
-function QRCode({ value }: { value: string }) {
+function QRCode({ value, fallback = 'Código Pix indisponível no momento.' }: { value: string; fallback?: string }) {
   const data = useMemo<{ count: number; path: string } | null>(() => {
     const factory = (window as Window & { qrcode?: (version: number, level: string) => { addData: (data: string) => void; make: () => void; getModuleCount: () => number; isDark: (row: number, column: number) => boolean } }).qrcode;
     if (typeof factory !== 'function') return null;
@@ -53,7 +53,7 @@ function QRCode({ value }: { value: string }) {
     return { count, path };
   }, [value]);
   return <div className="qr" data-testid="pix-qr">
-    {!value ? <p className="qr-fallback">Preparando o código Pix…</p> :
+    {!value ? <p className="qr-fallback">{fallback}</p> :
       data ? <svg viewBox={`0 0 ${data.count} ${data.count}`} shapeRendering="crispEdges" role="img" aria-label="Código QR do Pix"><path d={data.path}/></svg> :
       <p className="qr-fallback">QR indisponível. Use o código copia e cola.</p>}
   </div>;
@@ -105,6 +105,8 @@ function AppServer() {
   const lastExpiryRefresh = useRef<string | null>(null);
   const lastPaidOrderClose = useRef<string | null>(null);
   const revealInFlight = useRef(false);
+  const serverOffsetRef = useRef(serverOffset);
+  serverOffsetRef.current = serverOffset;
 
   const user = snapshot?.user ?? null;
   const cells = snapshot?.cells ?? [];
@@ -113,7 +115,14 @@ function AppServer() {
   const left = order ? Math.max(0, Date.parse(order.expiresAt) - serverNow) : 0;
   const cellCount = cells.filter(cell => cell.isMine).length;
   const selectedRedeemCell = cells.find(cell => cell.id === redeemCellId);
-  const statusLabel = order?.status === 'paid' ? 'Pagamento confirmado' : order?.status === 'expired' ? 'Pix expirado' : 'Aguardando pagamento';
+  const statusLabel = order?.status === 'paid'
+    ? 'Pagamento confirmado'
+    : order?.status === 'expired'
+      ? 'Pix expirado'
+      : left === 0
+        ? 'Prazo encerrado · verificando pagamento'
+        : 'Aguardando pagamento';
+  const pendingPixNeedsRecovery = order?.status === 'pending' && !order.payload.trim();
   const progress = order
     ? Math.max(0, Math.min(100, left / Math.max(1, Date.parse(order.expiresAt) - Date.parse(order.createdAt)) * 100))
     : 0;
@@ -189,7 +198,10 @@ function AppServer() {
         acceptSnapshot(next);
       } catch {
         if (active) {
-          setPaymentStatusError('Não foi possível verificar agora. A confirmação será tentada novamente.');
+          const deadlinePassed = Date.parse(order.expiresAt) <= Date.now() + serverOffsetRef.current;
+          setPaymentStatusError(deadlinePassed
+            ? 'O prazo terminou, mas não foi possível confirmar a situação do pagamento. Continuaremos verificando; não faça outro pagamento enquanto isso.'
+            : 'Não foi possível verificar agora. A confirmação será tentada novamente.');
         }
       }
     };
@@ -214,6 +226,20 @@ function AppServer() {
     }, 900);
     return () => window.clearTimeout(timeout);
   }, [order?.id, order?.status, refreshState]);
+  useEffect(() => {
+    if (!order || order.status !== 'expired' || dialog !== 'pix') return;
+    const timeout = window.setTimeout(() => {
+      setDialog(current => current === 'pix' ? 'none' : current);
+      refreshState().catch(error => setLoadError(messageFrom(error)));
+    }, 900);
+    return () => window.clearTimeout(timeout);
+  }, [order?.id, order?.status, dialog, refreshState]);
+  useEffect(() => {
+    if (dialog === 'packs' && order?.status === 'pending' && order.payload.trim()) {
+      setPackError('');
+      setDialog('pix');
+    }
+  }, [dialog, order?.id, order?.status, order?.payload]);
   useEffect(() => {
     const media = window.matchMedia('(prefers-reduced-motion: reduce)');
     const update = () => setReducedMotion(media.matches);
@@ -257,6 +283,16 @@ function AppServer() {
     setPackError('');
     setDialog('packs');
   };
+  const openPendingOrder = () => {
+    setPendingCell(null);
+    setPackError('');
+    if (pendingPixNeedsRecovery) {
+      setPackError('O código Pix deste pedido ainda não chegou. Tente verificar o pedido antes de iniciar outro pagamento.');
+      setDialog('packs');
+    } else {
+      setDialog('pix');
+    }
+  };
   const showReveal = (cellId: number) => {
     if (reducedMotion) return;
     setSparkId(cellId);
@@ -266,7 +302,7 @@ function AppServer() {
   const onCell = async (cell: CellState) => {
     if (revealInFlight.current) return;
     if (cell.phase === 'reserved') {
-      if (order?.status === 'pending' && order.cellId === cell.id) setDialog('pix');
+      if (order?.status === 'pending' && order.cellId === cell.id) openPendingOrder();
       return;
     }
     if (cell.phase !== 'closed') return;
@@ -303,12 +339,40 @@ function AppServer() {
       try {
         const current = await refreshState();
         if (current.order?.status === 'pending') {
-          setDialog('pix');
+          if (current.order.payload.trim()) {
+            setDialog('pix');
+          } else {
+            setPackError('O pedido foi iniciado, mas o código Pix ainda não chegou. Tente verificar o pedido antes de iniciar outro pagamento.');
+          }
           return;
         }
       } catch {
         // Keep the original order-creation error visible when recovery also fails.
       }
+      setPackError(messageFrom(error));
+    } finally {
+      setCreatingOrder(false);
+    }
+  };
+
+  const recoverPendingOrder = async () => {
+    const pendingOrder = snapshot?.order;
+    if (!pendingOrder || pendingOrder.status !== 'pending' || creatingOrder) return;
+    setCreatingOrder(true);
+    setPackError('');
+    try {
+      const next = await refreshOrderPayment(pendingOrder.id);
+      acceptSnapshot(next);
+      if (next.order?.status === 'pending' && next.order.payload.trim()) {
+        setDialog('pix');
+      } else if (next.order?.status === 'paid') {
+        setDialog('none');
+      } else if (next.order?.status === 'expired') {
+        setPackError('Este pedido Pix expirou. Você já pode selecionar um pacote e iniciar outro pagamento.');
+      } else {
+        setPackError('A Efí ainda não disponibilizou o código Pix. Tente verificar novamente antes de iniciar outro pagamento.');
+      }
+    } catch (error) {
       setPackError(messageFrom(error));
     } finally {
       setCreatingOrder(false);
@@ -446,8 +510,7 @@ function AppServer() {
       onEnter={() => openAuth('in')}
       onBuy={() => {
         if (order?.status === 'pending') {
-          setPendingCell(null);
-          setDialog('pix');
+          openPendingOrder();
         } else {
           openPacks(null);
         }
@@ -530,13 +593,15 @@ function AppServer() {
         <button
           className="btn full pack-continue"
           type="button"
-          disabled={!selectedChancePack || creatingOrder}
-          onClick={continueWithPack}
+          disabled={(!pendingPixNeedsRecovery && !selectedChancePack) || creatingOrder}
+          onClick={pendingPixNeedsRecovery ? recoverPendingOrder : continueWithPack}
           data-testid="button-continue-pack"
         >
           {creatingOrder
-            ? 'Preparando Pix…'
-            : selectedChancePack
+            ? pendingPixNeedsRecovery ? 'Verificando Pix…' : 'Preparando Pix…'
+            : pendingPixNeedsRecovery
+              ? 'Verificar pedido Pix'
+              : selectedChancePack
               ? `Pagar ${brl.format(selectedChancePack.priceCents / 100)} com Pix`
               : 'Selecione um pacote'}
         </button>
@@ -548,12 +613,19 @@ function AppServer() {
         <p className="sub">{plural(order.pack.n)} · {brl.format(order.pack.priceCents / 100)}</p>
         <div className="pix">
           <div className={`status ${order.status}`} data-testid="status-payment">{statusLabel}</div>
-          <QRCode value={order.payload}/>
+          <QRCode
+            value={order.status === 'pending' && left > 0 ? order.payload : ''}
+            fallback={left === 0 && order.status === 'pending'
+              ? 'Prazo encerrado. Verificando o pagamento…'
+              : 'Código Pix indisponível. Tente verificar o pedido novamente.'}
+          />
           <div className="clock"><Clock3 className="icon"/><span data-testid="value-pix-timer">{order.status === 'paid' ? 'pago' : order.status === 'expired' ? '00:00' : formatTime(left)}</span><div className="bar"><i style={{ width: `${order.status === 'pending' ? progress : 0}%` }}/></div></div>
-          <button className="btn full" id="copy" type="button" disabled={order.status !== 'pending' || !order.payload} onClick={copyPix} data-testid="button-copy-pix">{copyLabel}</button>
+          <button className="btn full" id="copy" type="button" disabled={order.status !== 'pending' || left === 0 || !order.payload.trim()} onClick={copyPix} data-testid="button-copy-pix">{left === 0 && order.status === 'pending' ? 'Prazo do Pix encerrado' : copyLabel}</button>
           {paymentStatusError && <p className="hint" role="status" data-testid="text-payment-check-error">{paymentStatusError}</p>}
           <p className="hint" id="hint" data-testid="text-payment-hint">
-            {order.status === 'pending' ? `${order.cellId !== null ? 'A célula escolhida está reservada enquanto o pagamento estiver pendente e será revelada após a confirmação. ' : ''}Fechar esta janela não cancela o pedido. O pagamento será confirmado automaticamente.` :
+            {order.status === 'pending' ? left === 0
+              ? 'O prazo do Pix terminou, mas ainda não foi possível confirmar o resultado junto à Efí. Não faça outro pagamento até a confirmação.'
+              : `${order.cellId !== null ? 'A célula escolhida está reservada enquanto o pagamento estiver pendente e será revelada após a confirmação. ' : ''}Fechar esta janela não cancela o pedido. O pagamento será confirmado automaticamente.` :
               order.status === 'paid' ? (order.cellId !== null ? 'Abrindo sua célula…' : 'Chances adicionadas.') :
               `O Pix expirou${order.cellId !== null ? ' e a célula foi liberada.' : '.'}`}
           </p>

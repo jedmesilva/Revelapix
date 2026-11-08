@@ -34,10 +34,20 @@ export class EfiApiError extends Error {
   constructor(
     message: string,
     readonly statusCode?: number,
+    readonly code?: string,
   ) {
     super(message);
     this.name = "EfiApiError";
   }
+}
+
+function isEfiCertificateSetupError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const code = (error as Error & { code?: unknown }).code;
+  return code === "ERR_OSSL_ASN1_WRONG_TAG"
+    || code === "ERR_OSSL_PEM_NO_START_LINE"
+    || code === "ERR_OSSL_PKCS12_BAD_MAC"
+    || /wrong tag|mac verify failure|bad decrypt|no start line/i.test(error.message);
 }
 
 let cachedToken: { value: string; expiresAt: number } | null = null;
@@ -230,16 +240,27 @@ async function authorizedRequest<T>(
   method: string,
   body?: unknown,
 ): Promise<T> {
-  const agent = getAgent(config);
-  const accessToken = await getAccessToken(config, agent);
-  return requestJson<T>(
-    config,
-    agent,
-    path,
-    method,
-    { Authorization: `Bearer ${accessToken}` },
-    body,
-  );
+  try {
+    const agent = getAgent(config);
+    const accessToken = await getAccessToken(config, agent);
+    return await requestJson<T>(
+      config,
+      agent,
+      path,
+      method,
+      { Authorization: `Bearer ${accessToken}` },
+      body,
+    );
+  } catch (error) {
+    if (isEfiCertificateSetupError(error)) {
+      throw new EfiApiError(
+        "Efí could not load the configured client certificate.",
+        undefined,
+        "EFI_CERTIFICATE_INVALID",
+      );
+    }
+    throw error;
+  }
 }
 
 function parseAmountCents(value: unknown): number | null {

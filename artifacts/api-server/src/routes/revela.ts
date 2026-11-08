@@ -478,7 +478,13 @@ router.post("/orders", createOrderRateLimiter, async (req, res): Promise<void> =
       .set({ pixPayload: charge.pixCopyPaste })
       .where(and(eq(ordersTable.id, orderId), eq(ordersTable.providerTxid, providerTxid)));
   } catch (error) {
-    if (error instanceof EfiApiError && [400, 401, 403, 404].includes(error.statusCode ?? 0)) {
+    if (
+      error instanceof EfiApiError
+      && (
+        [400, 401, 403, 404].includes(error.statusCode ?? 0)
+        || error.code === "EFI_CERTIFICATE_INVALID"
+      )
+    ) {
       await db.transaction(async (tx) => {
         const [order] = await tx.select().from(ordersTable)
           .where(and(eq(ordersTable.id, orderId), eq(ordersTable.status, "pending")))
@@ -499,7 +505,24 @@ router.post("/orders", createOrderRateLimiter, async (req, res): Promise<void> =
       });
     }
     req.log.error({ err: error, orderId }, "Could not create Efí Pix charge");
-    sendError(res, 502, "Não foi possível gerar o Pix agora. Tente novamente em instantes.", "EFI_CHARGE_FAILED");
+    const invalidCertificate = error instanceof EfiApiError
+      && error.code === "EFI_CERTIFICATE_INVALID";
+    const authorizationFailed = error instanceof EfiApiError
+      && [401, 403].includes(error.statusCode ?? 0);
+    sendError(
+      res,
+      502,
+      invalidCertificate
+        ? "A Efí não conseguiu ler o certificado configurado. Confira se o Secret do ambiente em uso contém o certificado P12 codificado em Base64 e se a senha corresponde a ele."
+        : authorizationFailed
+          ? "A Efí recusou a criação do Pix. Confira o escopo cob.write e se as credenciais e o certificado pertencem ao mesmo ambiente."
+          : "Não foi possível gerar o Pix agora. Tente novamente em instantes.",
+      invalidCertificate
+        ? "EFI_CERTIFICATE_INVALID"
+        : authorizationFailed
+          ? "EFI_CHARGE_AUTHORIZATION_FAILED"
+          : "EFI_CHARGE_FAILED",
+    );
     return;
   }
   const currentUser = await getSessionUser(req);
@@ -532,7 +555,24 @@ router.post("/orders/:orderId/refresh", async (req, res): Promise<void> => {
       await reconcileEfiOrder(order.id);
     } catch (error) {
       req.log.warn({ err: error, orderId: order.id }, "Could not refresh Efí Pix order");
-      sendError(res, 503, "Não foi possível verificar o pagamento agora. Tentaremos novamente.", "EFI_STATUS_UNAVAILABLE");
+      const invalidCertificate = error instanceof EfiApiError
+        && error.code === "EFI_CERTIFICATE_INVALID";
+      const authorizationFailed = error instanceof EfiApiError
+        && [401, 403].includes(error.statusCode ?? 0);
+      sendError(
+        res,
+        503,
+        invalidCertificate
+          ? "A Efí não conseguiu ler o certificado configurado. Confira se o Secret do ambiente em uso contém o certificado P12 codificado em Base64 e se a senha corresponde a ele."
+          : authorizationFailed
+            ? "A Efí recusou a consulta do Pix. Confira o escopo cob.read e se as credenciais e o certificado pertencem ao mesmo ambiente."
+            : "Não foi possível verificar o pagamento agora. Tentaremos novamente.",
+        invalidCertificate
+          ? "EFI_CERTIFICATE_INVALID"
+          : authorizationFailed
+            ? "EFI_STATUS_AUTHORIZATION_FAILED"
+            : "EFI_STATUS_UNAVAILABLE",
+      );
       return;
     }
   }
