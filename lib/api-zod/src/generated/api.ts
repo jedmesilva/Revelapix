@@ -221,80 +221,26 @@ export const LoginAccountResponse = zod.object({
 
 
 /**
- * @summary Read public Google sign-in configuration
+ * @summary Start server-managed Google sign-in
  */
-export const GetGoogleAuthConfigResponse = zod.object({
-  "enabled": zod.boolean(),
-  "supabaseUrl": zod.string(),
-  "supabaseAnonKey": zod.string()
-})
+export const StartGoogleAuthResponse = zod.void()
 
 
 /**
- * @summary Validate a Google identity and create an app session
+ * @summary Complete Google sign-in on the server
  */
-export const loginWithGoogleBodyAccessTokenMax = 8192;
+export const completeGoogleAuthQueryCodeMax = 4096;
+
+export const completeGoogleAuthQueryErrorMax = 128;
 
 
 
-export const LoginWithGoogleBody = zod.object({
-  "accessToken": zod.string().min(1).max(loginWithGoogleBodyAccessTokenMax)
+export const CompleteGoogleAuthQueryParams = zod.object({
+  "code": zod.coerce.string().min(1).max(completeGoogleAuthQueryCodeMax).optional(),
+  "error": zod.coerce.string().max(completeGoogleAuthQueryErrorMax).optional()
 })
 
-export const loginWithGoogleResponseUserOneChancesMin = 0;
-
-export const loginWithGoogleResponseCellsItemIdMin = 0;
-export const loginWithGoogleResponseCellsItemIdMax = 83;
-
-export const loginWithGoogleResponsePacksItemIdMax = 64;
-
-
-
-
-
-export const loginWithGoogleResponseOrderOneCellIdMin = 0;
-export const loginWithGoogleResponseOrderOneCellIdMax = 83;
-
-
-
-export const LoginWithGoogleResponse = zod.object({
-  "user": zod.union([zod.object({
-  "id": zod.string().uuid(),
-  "name": zod.string(),
-  "email": zod.string().email(),
-  "chances": zod.number().int().min(loginWithGoogleResponseUserOneChancesMin),
-  "hasPassword": zod.boolean()
-}),zod.null()]),
-  "cells": zod.array(zod.object({
-  "id": zod.number().int().min(loginWithGoogleResponseCellsItemIdMin).max(loginWithGoogleResponseCellsItemIdMax),
-  "phase": zod.enum(['closed', 'reserved', 'open']),
-  "isMine": zod.boolean(),
-  "redeemed": zod.boolean(),
-  "redemptionStatus": zod.union([zod.literal('requested'),zod.literal('rejected'),zod.literal('cancelled'),zod.literal('under_review'),zod.literal('redeemed'),zod.literal(null)]).nullable(),
-  "prizeValueCents": zod.number().int().nullable(),
-  "prizeKind": zod.union([zod.literal('image'),zod.literal('stat'),zod.literal('icon'),zod.literal(null)]).nullable(),
-  "reservedUntil": zod.coerce.date().nullable()
-})),
-  "packs": zod.array(zod.object({
-  "id": zod.string().min(1).max(loginWithGoogleResponsePacksItemIdMax),
-  "n": zod.number().int().min(1),
-  "priceCents": zod.number().int().min(1)
-})),
-  "order": zod.union([zod.object({
-  "id": zod.string().uuid(),
-  "pack": zod.object({
-  "n": zod.number().int().min(1),
-  "priceCents": zod.number().int().min(1)
-}),
-  "cellId": zod.number().int().min(loginWithGoogleResponseOrderOneCellIdMin).max(loginWithGoogleResponseOrderOneCellIdMax).nullable(),
-  "status": zod.enum(['pending', 'paid', 'expired']),
-  "payload": zod.string(),
-  "createdAt": zod.coerce.date(),
-  "expiresAt": zod.coerce.date()
-}),zod.null()]),
-  "serverTime": zod.coerce.date(),
-  "testPaymentsEnabled": zod.boolean()
-})
+export const CompleteGoogleAuthResponse = zod.void()
 
 
 /**

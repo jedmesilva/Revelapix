@@ -84,40 +84,31 @@ paths:
                 $ref: "#/components/schemas/RevelaStateResponse"
         "401":
           description: Invalid credentials
-  /auth/google/config:
-    get:
-      operationId: getGoogleAuthConfig
-      tags: [auth]
-      summary: Read public Google sign-in configuration
-      responses:
-        "200":
-          description: Public Supabase Auth configuration
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/GoogleAuthConfig"
   /auth/google:
-    post:
-      operationId: loginWithGoogle
+    get:
+      operationId: startGoogleAuth
       tags: [auth]
-      summary: Validate a Google identity and create an app session
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/GoogleAuthInput"
+      summary: Start server-managed Google sign-in
       responses:
-        "200":
-          description: Signed in
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/RevelaStateResponse"
-        "401":
-          description: Invalid or unverified Google identity
-        "409":
-          description: Google identity conflicts with an existing account
+        "302":
+          description: Redirect to Supabase Auth
+  /auth/google/callback:
+    get:
+      operationId: completeGoogleAuth
+      tags: [auth]
+      summary: Complete Google sign-in on the server
+      parameters:
+        - name: code
+          in: query
+          required: false
+          schema: { type: string, minLength: 1, maxLength: 4096 }
+        - name: error
+          in: query
+          required: false
+          schema: { type: string, maxLength: 128 }
+      responses:
+        "303":
+          description: Redirect back to the application after sign-in
   /auth/logout:
     post:
       operationId: logoutAccount
@@ -338,18 +329,6 @@ components:
       properties:
         email: { type: string, format: email, maxLength: 254 }
         password: { type: string, minLength: 1, maxLength: 128 }
-    GoogleAuthConfig:
-      type: object
-      required: [enabled, supabaseUrl, supabaseAnonKey]
-      properties:
-        enabled: { type: boolean }
-        supabaseUrl: { type: string }
-        supabaseAnonKey: { type: string }
-    GoogleAuthInput:
-      type: object
-      required: [accessToken]
-      properties:
-        accessToken: { type: string, minLength: 1, maxLength: 8192 }
     ChangePasswordInput:
       type: object
       required: [newPassword]

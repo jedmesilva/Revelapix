@@ -4,11 +4,9 @@ import { and, desc, eq, gt, isNull, sql } from "drizzle-orm";
 import {
   ChangePasswordBody,
   CreateOrderBody,
-  GetGoogleAuthConfigResponse,
   GetRevelaStateResponse,
   GetSavedRedemptionDetailsResponse,
   LoginAccountBody,
-  LoginWithGoogleBody,
   RedeemCellBody,
   RedeemCellResponse,
   RegisterAccountBody,
@@ -29,6 +27,12 @@ import {
   usersTable,
 } from "@workspace/db";
 import { createSession, deleteSession, getSessionUser, hashPassword, verifyPassword } from "../lib/auth";
+import {
+  clearGoogleOAuthCookies,
+  createGoogleSupabaseClient,
+  getGoogleAuthConfig,
+  getPublicAppOrigin,
+} from "../lib/google-auth";
 import { decryptRedemptionProfile, encryptRedemptionProfile } from "../lib/redemption-profile";
 import {
   ensureBoard,
@@ -48,16 +52,6 @@ type SupabaseAuthUser = {
   identities?: Array<{ provider?: string }>;
   user_metadata?: { full_name?: string; name?: string };
 };
-
-function getSupabaseAuthConfig() {
-  const supabaseUrl = process.env.SUPABASE_URL?.trim() ?? "";
-  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY?.trim() ?? "";
-  return {
-    enabled: Boolean(supabaseUrl && supabaseAnonKey),
-    supabaseUrl,
-    supabaseAnonKey,
-  };
-}
 
 function isUniqueConstraintError(error: unknown): boolean {
   return typeof error === "object" && error !== null && "code" in error && error.code === "23505";
@@ -139,45 +133,68 @@ router.post("/auth/login", async (req, res): Promise<void> => {
   res.json(GetRevelaStateResponse.parse(await getRevelaState(user)));
 });
 
-router.get("/auth/google/config", (_req, res): void => {
-  res.json(GetGoogleAuthConfigResponse.parse(getSupabaseAuthConfig()));
-});
-
-router.post("/auth/google", async (req, res): Promise<void> => {
-  const parsed = LoginWithGoogleBody.safeParse(req.body);
-  if (!parsed.success) {
-    sendError(res, 400, "Não foi possível validar o login com Google.", "INVALID_INPUT");
-    return;
-  }
-
-  const config = getSupabaseAuthConfig();
+router.get("/auth/google", async (req, res): Promise<void> => {
+  res.setHeader("Cache-Control", "no-store");
+  res.setHeader("Referrer-Policy", "no-referrer");
+  const config = getGoogleAuthConfig();
   if (!config.enabled) {
-    sendError(res, 503, "O login com Google ainda não está configurado.", "GOOGLE_AUTH_UNAVAILABLE");
+    res.redirect(303, "/?googleAuthError=unavailable");
     return;
   }
 
-  const identityResponse = await fetch(`${config.supabaseUrl.replace(/\/+$/, "")}/auth/v1/user`, {
-    headers: {
-      apikey: config.supabaseAnonKey,
-      authorization: `Bearer ${parsed.data.accessToken}`,
+  const appOrigin = getPublicAppOrigin();
+  if (!appOrigin) {
+    req.log.error("Could not determine a trusted Replit app domain for Google OAuth");
+    res.redirect(303, "/?googleAuthError=unavailable");
+    return;
+  }
+
+  const supabase = createGoogleSupabaseClient(req, res, config);
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: new URL("/api/auth/google/callback", appOrigin).toString(),
     },
   });
-  if (identityResponse.status === 401 || identityResponse.status === 403) {
-    sendError(res, 401, "A sessão do Google expirou. Tente entrar novamente.", "INVALID_GOOGLE_TOKEN");
-    return;
-  }
-  if (!identityResponse.ok) {
-    sendError(res, 502, "Não foi possível validar a conta do Google. Tente novamente.", "GOOGLE_AUTH_FAILED");
+  if (error || !data.url) {
+    req.log.error({ err: error }, "Could not start Google OAuth");
+    clearGoogleOAuthCookies(req, res);
+    res.redirect(303, "/?googleAuthError=failed");
     return;
   }
 
-  const identity = await identityResponse.json() as SupabaseAuthUser;
+  res.redirect(302, data.url);
+});
+
+router.get("/auth/google/callback", async (req, res): Promise<void> => {
+  res.setHeader("Cache-Control", "no-store");
+  res.setHeader("Referrer-Policy", "no-referrer");
+  const config = getGoogleAuthConfig();
+  const code = typeof req.query.code === "string" ? req.query.code : "";
+  const providerError = typeof req.query.error === "string" ? req.query.error : "";
+  if (!config.enabled || !code || providerError) {
+    clearGoogleOAuthCookies(req, res);
+    res.redirect(303, `/?googleAuthError=${config.enabled ? "failed" : "unavailable"}`);
+    return;
+  }
+
+  const supabase = createGoogleSupabaseClient(req, res, config, { clearSessionWrites: true });
+  const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+  clearGoogleOAuthCookies(req, res);
+  if (error || !data.user) {
+    req.log.warn({ err: error }, "Google OAuth code exchange failed");
+    res.redirect(303, "/?googleAuthError=failed");
+    return;
+  }
+
+  const identity = data.user as SupabaseAuthUser;
   const hasGoogleIdentity = identity.app_metadata?.provider === "google"
     || identity.app_metadata?.providers?.includes("google") === true
     || identity.identities?.some((item) => item.provider === "google") === true;
   const email = identity.email?.trim().toLowerCase();
   if (!identity.id || !email || !identity.email_confirmed_at || !hasGoogleIdentity) {
-    sendError(res, 401, "A conta do Google não pôde ser confirmada.", "UNVERIFIED_GOOGLE_IDENTITY");
+    req.log.warn("Google OAuth returned an unverified or non-Google identity");
+    res.redirect(303, "/?googleAuthError=failed");
     return;
   }
 
@@ -199,7 +216,7 @@ router.post("/auth/google", async (req, res): Promise<void> => {
         .limit(1);
 
       if (emailUser?.googleSubject && emailUser.googleSubject !== identity.id) {
-        sendError(res, 409, "Este e-mail já está vinculado a outra conta Google.", "GOOGLE_ACCOUNT_CONFLICT");
+        res.redirect(303, "/?googleAuthError=conflict");
         return;
       }
 
@@ -237,11 +254,11 @@ router.post("/auth/google", async (req, res): Promise<void> => {
   }
 
   if (!user) {
-    sendError(res, 409, "Não foi possível vincular esta conta Google. Tente novamente.", "GOOGLE_ACCOUNT_CONFLICT");
+    res.redirect(303, "/?googleAuthError=conflict");
     return;
   }
   await createSession(user.id, res);
-  res.json(GetRevelaStateResponse.parse(await getRevelaState(user)));
+  res.redirect(303, "/");
 });
 
 router.post("/auth/logout", async (req, res): Promise<void> => {

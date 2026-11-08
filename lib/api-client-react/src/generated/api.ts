@@ -26,9 +26,8 @@ import type {
 
 import type {
   ChangePasswordInput,
+  CompleteGoogleAuthParams,
   CreateOrderInput,
-  GoogleAuthConfig,
-  GoogleAuthInput,
   HealthStatus,
   LoginInput,
   RedeemCellInput,
@@ -444,20 +443,20 @@ export const useLoginAccount = <TError = ErrorType<void>,
       return useMutation(getLoginAccountMutationOptions(options), queryClient);
     }
 
-export const getGetGoogleAuthConfigUrl = () => {
+export const getStartGoogleAuthUrl = () => {
 
 
 
 
-  return `/api/auth/google/config`
+  return `/api/auth/google`
 }
 
 /**
- * @summary Read public Google sign-in configuration
+ * @summary Start server-managed Google sign-in
  */
-export const getGoogleAuthConfig = async ( options?: Parameters<typeof customFetch>[1]): Promise<GoogleAuthConfig> => {
+export const startGoogleAuth = async ( options?: Parameters<typeof customFetch>[1]): Promise<unknown> => {
 
-  return customFetch<GoogleAuthConfig>(getGetGoogleAuthConfigUrl(),
+  return customFetch<unknown>(getStartGoogleAuthUrl(),
   {
     ...options,
     method: 'GET'
@@ -470,69 +469,69 @@ export const getGoogleAuthConfig = async ( options?: Parameters<typeof customFet
 
 
 
-export const getGetGoogleAuthConfigQueryKey = () => {
+export const getStartGoogleAuthQueryKey = () => {
     return [
-    `/api/auth/google/config`
+    `/api/auth/google`
     ] as const;
     }
 
 
-export const getGetGoogleAuthConfigQueryOptions = <TData = Awaited<ReturnType<typeof getGoogleAuthConfig>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGoogleAuthConfig>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+export const getStartGoogleAuthQueryOptions = <TData = Awaited<ReturnType<typeof startGoogleAuth>>, TError = ErrorType<void>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof startGoogleAuth>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetGoogleAuthConfigQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getStartGoogleAuthQueryKey();
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getGoogleAuthConfig>>> = ({ signal }) => getGoogleAuthConfig({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof startGoogleAuth>>> = ({ signal }) => startGoogleAuth({ signal, ...requestOptions });
 
 
 
 
 
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getGoogleAuthConfig>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof startGoogleAuth>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type GetGoogleAuthConfigQueryResult = NonNullable<Awaited<ReturnType<typeof getGoogleAuthConfig>>>
-export type GetGoogleAuthConfigQueryError = ErrorType<unknown>
+export type StartGoogleAuthQueryResult = NonNullable<Awaited<ReturnType<typeof startGoogleAuth>>>
+export type StartGoogleAuthQueryError = ErrorType<void>
 
 
-export function useGetGoogleAuthConfig<TData = Awaited<ReturnType<typeof getGoogleAuthConfig>>, TError = ErrorType<unknown>>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGoogleAuthConfig>>, TError, TData>> & Pick<
+export function useStartGoogleAuth<TData = Awaited<ReturnType<typeof startGoogleAuth>>, TError = ErrorType<void>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof startGoogleAuth>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getGoogleAuthConfig>>,
+          Awaited<ReturnType<typeof startGoogleAuth>>,
           TError,
-          Awaited<ReturnType<typeof getGoogleAuthConfig>>
+          Awaited<ReturnType<typeof startGoogleAuth>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetGoogleAuthConfig<TData = Awaited<ReturnType<typeof getGoogleAuthConfig>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGoogleAuthConfig>>, TError, TData>> & Pick<
+export function useStartGoogleAuth<TData = Awaited<ReturnType<typeof startGoogleAuth>>, TError = ErrorType<void>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof startGoogleAuth>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getGoogleAuthConfig>>,
+          Awaited<ReturnType<typeof startGoogleAuth>>,
           TError,
-          Awaited<ReturnType<typeof getGoogleAuthConfig>>
+          Awaited<ReturnType<typeof startGoogleAuth>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetGoogleAuthConfig<TData = Awaited<ReturnType<typeof getGoogleAuthConfig>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGoogleAuthConfig>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+export function useStartGoogleAuth<TData = Awaited<ReturnType<typeof startGoogleAuth>>, TError = ErrorType<void>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof startGoogleAuth>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
- * @summary Read public Google sign-in configuration
+ * @summary Start server-managed Google sign-in
  */
 
-export function useGetGoogleAuthConfig<TData = Awaited<ReturnType<typeof getGoogleAuthConfig>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGoogleAuthConfig>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+export function useStartGoogleAuth<TData = Awaited<ReturnType<typeof startGoogleAuth>>, TError = ErrorType<void>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof startGoogleAuth>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getGetGoogleAuthConfigQueryOptions(options)
+  const queryOptions = getStartGoogleAuthQueryOptions(options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -545,39 +544,32 @@ export function useGetGoogleAuthConfig<TData = Awaited<ReturnType<typeof getGoog
 
 
 
-export const getLoginWithGoogleUrl = () => {
+export const getCompleteGoogleAuthUrl = (params?: CompleteGoogleAuthParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/auth/google`
+  return stringifiedParams.length > 0 ? `/api/auth/google/callback?${stringifiedParams}` : `/api/auth/google/callback`
 }
 
 /**
- * @summary Validate a Google identity and create an app session
+ * @summary Complete Google sign-in on the server
  */
-export const loginWithGoogle = async (googleAuthInput: GoogleAuthInput, options?: Parameters<typeof customFetch>[1]): Promise<RevelaStateResponse> => {
+export const completeGoogleAuth = async (params?: CompleteGoogleAuthParams, options?: Parameters<typeof customFetch>[1]): Promise<unknown> => {
 
-    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
-return customFetch<RevelaStateResponse>(getLoginWithGoogleUrl(),
+  return customFetch<unknown>(getCompleteGoogleAuthUrl(params),
   {
     ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(googleAuthInput)
+    method: 'GET'
+
+
   }
 );}
 
@@ -585,53 +577,80 @@ return customFetch<RevelaStateResponse>(getLoginWithGoogleUrl(),
 
 
 
-export const getLoginWithGoogleMutationKey = () => ['loginWithGoogle'] as const;
-
-export const getLoginWithGoogleMutationOptions = <TError = ErrorType<void>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof loginWithGoogle>>, TError,LoginWithGoogleMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof loginWithGoogle>>, TError,LoginWithGoogleMutationVariables, TContext> => {
-
-const mutationKey = getLoginWithGoogleMutationKey();
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof loginWithGoogle>>, LoginWithGoogleMutationVariables> = (props) => {
-          const {data} = props ?? {};
-
-          return  loginWithGoogle(data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type LoginWithGoogleMutationResult = NonNullable<Awaited<ReturnType<typeof loginWithGoogle>>>
-    export type LoginWithGoogleMutationBody = BodyType<GoogleAuthInput>
-    export type LoginWithGoogleMutationError = ErrorType<void>
-    export type LoginWithGoogleMutationVariables = {data: BodyType<GoogleAuthInput>}
-
-    /**
- * @summary Validate a Google identity and create an app session
- */
-export const useLoginWithGoogle = <TError = ErrorType<void>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof loginWithGoogle>>, TError,LoginWithGoogleMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof loginWithGoogle>>,
-        TError,
-        LoginWithGoogleMutationVariables,
-        TContext
-      > => {
-      return useMutation(getLoginWithGoogleMutationOptions(options), queryClient);
+export const getCompleteGoogleAuthQueryKey = (params?: CompleteGoogleAuthParams,) => {
+    return [
+    `/api/auth/google/callback`, ...(params ? [params] : [])
+    ] as const;
     }
+
+
+export const getCompleteGoogleAuthQueryOptions = <TData = Awaited<ReturnType<typeof completeGoogleAuth>>, TError = ErrorType<void>>(params?: CompleteGoogleAuthParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof completeGoogleAuth>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getCompleteGoogleAuthQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof completeGoogleAuth>>> = ({ signal }) => completeGoogleAuth(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof completeGoogleAuth>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type CompleteGoogleAuthQueryResult = NonNullable<Awaited<ReturnType<typeof completeGoogleAuth>>>
+export type CompleteGoogleAuthQueryError = ErrorType<void>
+
+
+export function useCompleteGoogleAuth<TData = Awaited<ReturnType<typeof completeGoogleAuth>>, TError = ErrorType<void>>(
+ params: undefined |  CompleteGoogleAuthParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof completeGoogleAuth>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof completeGoogleAuth>>,
+          TError,
+          Awaited<ReturnType<typeof completeGoogleAuth>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useCompleteGoogleAuth<TData = Awaited<ReturnType<typeof completeGoogleAuth>>, TError = ErrorType<void>>(
+ params?: CompleteGoogleAuthParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof completeGoogleAuth>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof completeGoogleAuth>>,
+          TError,
+          Awaited<ReturnType<typeof completeGoogleAuth>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useCompleteGoogleAuth<TData = Awaited<ReturnType<typeof completeGoogleAuth>>, TError = ErrorType<void>>(
+ params?: CompleteGoogleAuthParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof completeGoogleAuth>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Complete Google sign-in on the server
+ */
+
+export function useCompleteGoogleAuth<TData = Awaited<ReturnType<typeof completeGoogleAuth>>, TError = ErrorType<void>>(
+ params?: CompleteGoogleAuthParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof completeGoogleAuth>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getCompleteGoogleAuthQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getLogoutAccountUrl = () => {
 

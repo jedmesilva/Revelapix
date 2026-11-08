@@ -1,10 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type InputHTMLAttributes } from 'react';
 import { AlertCircle, ArrowLeft, Check, ChevronRight, Clock3, Grid2X2, LockKeyhole } from 'lucide-react';
-import { createClient } from '@supabase/supabase-js';
 import type {
   CellState,
   ChancePlan,
-  GoogleAuthConfig,
   RedeemCellInputKeyType,
   RedemptionResult,
   RevelaStateResponse,
@@ -15,11 +13,9 @@ import { TopBar } from './components/TopBar';
 import {
   changePassword,
   createOrder,
-  getGoogleAuthConfig,
   getSavedRedemptionDetails,
   getRevelaState,
   loginAccount,
-  loginWithGoogle,
   logoutAccount,
   redeemCell,
   registerAccount,
@@ -66,18 +62,6 @@ function messageFrom(error: unknown): string {
   return error instanceof Error ? error.message : 'Não foi possível concluir a solicitação.';
 }
 
-function createSupabaseAuthClient(config: GoogleAuthConfig) {
-  return createClient(config.supabaseUrl, config.supabaseAnonKey, {
-    auth: {
-      flowType: 'pkce',
-      storage: window.sessionStorage,
-      persistSession: true,
-      autoRefreshToken: false,
-      detectSessionInUrl: true,
-    },
-  });
-}
-
 function AppServer() {
   const [snapshot, setSnapshot] = useState<RevelaStateResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -117,7 +101,6 @@ function AppServer() {
   const [sparkId, setSparkId] = useState<number | null>(null);
   const [revealId, setRevealId] = useState<number | null>(null);
   const lastExpiryRefresh = useRef<string | null>(null);
-  const googleCallbackStarted = useRef(false);
   const redemptionProfileRequest = useRef(0);
 
   const user = snapshot?.user ?? null;
@@ -170,56 +153,18 @@ function AppServer() {
   }, []);
   useEffect(() => {
     const callbackUrl = new URL(window.location.href);
-    const hashParams = new URLSearchParams(callbackUrl.hash.slice(1));
-    const hasOAuthCallback = callbackUrl.searchParams.has('code')
-      || callbackUrl.searchParams.has('error')
-      || hashParams.has('access_token')
-      || hashParams.has('error');
-    if (!hasOAuthCallback || googleCallbackStarted.current) return;
-    googleCallbackStarted.current = true;
-
-    const cleanCallbackUrl = () => {
-      const cleanUrl = new URL(window.location.href);
-      for (const key of ['code', 'error', 'error_code', 'error_description', 'error_uri', 'state']) {
-        cleanUrl.searchParams.delete(key);
-      }
-      const hash = new URLSearchParams(cleanUrl.hash.slice(1));
-      const hadOAuthHash = hash.has('access_token') || hash.has('error');
-      if (hadOAuthHash) cleanUrl.hash = '';
-      window.history.replaceState({}, document.title, `${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`);
-    };
+    const authError = callbackUrl.searchParams.get('googleAuthError');
+    if (!authError) return;
 
     setDialog('auth');
-    setAuthError('');
-    setGoogleAuthBusy(true);
-    let client: ReturnType<typeof createSupabaseAuthClient> | null = null;
-    void (async () => {
-      try {
-        const callbackError = callbackUrl.searchParams.get('error')
-          || callbackUrl.searchParams.get('error_description')
-          || hashParams.get('error');
-        if (callbackError) throw new Error('O acesso pelo Google foi cancelado ou não pôde ser concluído.');
-
-        const config = await getGoogleAuthConfig();
-        if (!config.enabled) throw new Error('O login com Google ainda não está configurado.');
-        client = createSupabaseAuthClient(config);
-        const { data, error } = await client.auth.getSession();
-        if (error) throw error;
-        if (!data.session?.access_token) throw new Error('Não foi possível concluir o login com Google. Tente novamente.');
-
-        const next = await loginWithGoogle({ accessToken: data.session.access_token });
-        acceptSnapshot(next);
-        setAuthPass('');
-        setAuthError('');
-        setDialog('none');
-      } catch (error) {
-        setAuthError(messageFrom(error));
-      } finally {
-        if (client) await client.auth.signOut({ scope: 'local' }).catch(() => undefined);
-        cleanCallbackUrl();
-        setGoogleAuthBusy(false);
-      }
-    })();
+    setGoogleAuthBusy(false);
+    setAuthError(authError === 'unavailable'
+      ? 'O login com Google ainda não está configurado.'
+      : authError === 'conflict'
+        ? 'Esta conta Google não pôde ser vinculada à conta existente.'
+        : 'O acesso pelo Google foi cancelado ou não pôde ser concluído.');
+    callbackUrl.searchParams.delete('googleAuthError');
+    window.history.replaceState({}, document.title, `${callbackUrl.pathname}${callbackUrl.search}${callbackUrl.hash}`);
   }, []);
   useEffect(() => {
     const id = window.setInterval(() => setTick(Date.now()), 1000);
@@ -380,23 +325,10 @@ function AppServer() {
     }
   };
 
-  const startGoogleAuth = async () => {
+  const startGoogleAuth = () => {
     setGoogleAuthBusy(true);
     setAuthError('');
-    try {
-      const config = await getGoogleAuthConfig();
-      if (!config.enabled) throw new Error('O login com Google ainda não está configurado.');
-      const client = createSupabaseAuthClient(config);
-      const redirectTo = `${window.location.origin}${window.location.pathname}`;
-      const { error } = await client.auth.signInWithOAuth({
-        provider: 'google',
-        options: { redirectTo },
-      });
-      if (error) throw error;
-    } catch (error) {
-      setAuthError(messageFrom(error));
-      setGoogleAuthBusy(false);
-    }
+    window.location.assign('/api/auth/google');
   };
 
   const openAccount = () => {

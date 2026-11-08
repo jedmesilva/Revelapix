@@ -1,8 +1,6 @@
 import type {
   ChangePasswordInput,
   CreateOrderInput,
-  GoogleAuthConfig,
-  GoogleAuthInput,
   LoginInput,
   RedeemCellInput,
   RedemptionResult,
@@ -55,17 +53,6 @@ export function registerAccount(data: RegisterInput): Promise<RevelaStateRespons
 
 export function loginAccount(data: LoginInput): Promise<RevelaStateResponse> {
   return request<RevelaStateResponse>("/api/auth/login", {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-}
-
-export function getGoogleAuthConfig(): Promise<GoogleAuthConfig> {
-  return request<GoogleAuthConfig>("/api/auth/google/config");
-}
-
-export function loginWithGoogle(data: GoogleAuthInput): Promise<RevelaStateResponse> {
-  return request<RevelaStateResponse>("/api/auth/google", {
     method: "POST",
     body: JSON.stringify(data),
   });
