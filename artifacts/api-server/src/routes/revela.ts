@@ -20,7 +20,6 @@ import {
   chancePlansTable,
   db,
   ordersTable,
-  redemptionProfilesTable,
   redemptionRequestsTable,
   sessionsTable,
   usersTable,
@@ -32,7 +31,6 @@ import {
   getGoogleAuthConfig,
   getPublicAppOrigin,
 } from "../lib/google-auth";
-import { encryptRedemptionProfile } from "../lib/redemption-profile";
 import {
   ensureBoard,
   expireReservations,
@@ -561,11 +559,6 @@ router.post("/redemptions", async (req, res): Promise<void> => {
     return;
   }
 
-  const encryptedProfile = encryptRedemptionProfile({
-    keyType: parsed.data.keyType,
-    pixKey: key.value,
-    holderCpf,
-  });
   const redemption = await db.transaction(async (tx) => {
     const [currentCell] = await tx.select().from(cellsTable)
       .where(eq(cellsTable.id, parsed.data.cellId))
@@ -597,20 +590,6 @@ router.post("/redemptions", async (req, res): Promise<void> => {
       })
       .returning();
 
-    const updatedAt = new Date();
-    await tx.insert(redemptionProfilesTable)
-      .values({
-        userId: user.id,
-        ...encryptedProfile,
-        updatedAt,
-      })
-      .onConflictDoUpdate({
-        target: redemptionProfilesTable.userId,
-        set: {
-          ...encryptedProfile,
-          updatedAt,
-        },
-      });
     return { cell: updatedCell, request };
   });
   if (!redemption) {

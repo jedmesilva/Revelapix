@@ -566,7 +566,7 @@ function AppServer() {
         </div>
         <label className="field">Chave Pix<input className="input" value={redeemKey} onChange={e => setRedeemKey(redeemType === 'cpf' ? maskCpf(e.target.value) : redeemType === 'phone' ? maskPhone(e.target.value) : e.target.value)} placeholder={KEY_OPTIONS.find(x => x.id === redeemType)?.ph} inputMode={KEY_OPTIONS.find(x => x.id === redeemType)?.mode as InputHTMLAttributes<HTMLInputElement>['inputMode']} autoComplete="off" autoCapitalize="off" spellCheck={false} data-testid="input-pix-key"/></label>
         <label className="field">CPF do titular da chave<input className="input" inputMode="numeric" autoComplete="off" placeholder="000.000.000-00" maxLength={14} value={redeemCpf} onChange={e => setRedeemCpf(maskCpf(e.target.value))} data-testid="input-holder-cpf"/></label>
-        <p className="hint">Informe a chave Pix e o CPF em cada resgate. Os valores digitados não são pré-preenchidos pelo perfil salvo e são armazenados criptografados no servidor. Esta é uma demonstração; nenhuma transferência real ou verificação de titularidade acontece.</p>
+        <p className="hint">Informe a chave Pix e o CPF para este resgate. Esses dados não serão guardados após a solicitação. Esta é uma demonstração; nenhuma transferência real ou verificação de titularidade acontece.</p>
         {redeemError && <ErrorMessage testId="error-redeem">{redeemError}</ErrorMessage>}
         <button className="btn full" type="submit" disabled={redeemBusy} data-testid="button-submit-redeem">{redeemBusy ? 'Verificando titular…' : 'Confirmar resgate'}</button>
       </form>}
