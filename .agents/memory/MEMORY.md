@@ -1,1 +1,2 @@
 - [Autoridade de dados](data-authority.md) — regras e estado persistente ficam no servidor; o client recebe apenas projeções para a interface.
+- [OpenAPI no Node 20](openapi-node20.md) — o Orval atual usa `Map.groupBy`, ausente no Node 20 configurado; codegen pode falhar após gerar parte dos clientes.

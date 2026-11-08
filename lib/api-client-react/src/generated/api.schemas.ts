@@ -15,6 +15,7 @@ export interface UserSummary {
   email: string;
   /** @minimum 0 */
   chances: number;
+  hasPassword: boolean;
 }
 
 export type CellStatePhase = typeof CellStatePhase[keyof typeof CellStatePhase];
@@ -129,12 +130,26 @@ export interface LoginInput {
   password: string;
 }
 
+export interface GoogleAuthConfig {
+  enabled: boolean;
+  supabaseUrl: string;
+  supabaseAnonKey: string;
+}
+
+export interface GoogleAuthInput {
+  /**
+     * @minLength 1
+     * @maxLength 8192
+     */
+  accessToken: string;
+}
+
 export interface ChangePasswordInput {
   /**
      * @minLength 1
      * @maxLength 128
      */
-  currentPassword: string;
+  currentPassword?: string;
   /**
      * @minLength 6
      * @maxLength 128

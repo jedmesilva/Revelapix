@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type InputHTMLAttributes } from 'react';
 import { AlertCircle, ArrowLeft, Check, ChevronRight, Clock3, Grid2X2, LockKeyhole } from 'lucide-react';
+import { createClient } from '@supabase/supabase-js';
 import type {
   CellState,
   CreateOrderInputPackCount,
+  GoogleAuthConfig,
   RedeemCellInputKeyType,
   RedemptionResult,
   RevelaStateResponse,
@@ -13,8 +15,10 @@ import { TopBar } from './components/TopBar';
 import {
   changePassword,
   createOrder,
+  getGoogleAuthConfig,
   getRevelaState,
   loginAccount,
+  loginWithGoogle,
   logoutAccount,
   redeemCell,
   registerAccount,
@@ -61,6 +65,18 @@ function messageFrom(error: unknown): string {
   return error instanceof Error ? error.message : 'Não foi possível concluir a solicitação.';
 }
 
+function createSupabaseAuthClient(config: GoogleAuthConfig) {
+  return createClient(config.supabaseUrl, config.supabaseAnonKey, {
+    auth: {
+      flowType: 'pkce',
+      storage: window.sessionStorage,
+      persistSession: true,
+      autoRefreshToken: false,
+      detectSessionInUrl: true,
+    },
+  });
+}
+
 function AppServer() {
   const [snapshot, setSnapshot] = useState<RevelaStateResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -75,6 +91,7 @@ function AppServer() {
   const [authPass, setAuthPass] = useState('');
   const [authError, setAuthError] = useState('');
   const [authBusy, setAuthBusy] = useState(false);
+  const [googleAuthBusy, setGoogleAuthBusy] = useState(false);
   const [pendingCell, setPendingCell] = useState<number | null>(null);
   const [tick, setTick] = useState(Date.now());
   const [copyLabel, setCopyLabel] = useState('Copiar código Pix');
@@ -95,6 +112,7 @@ function AppServer() {
   const [sparkId, setSparkId] = useState<number | null>(null);
   const [revealId, setRevealId] = useState<number | null>(null);
   const lastExpiryRefresh = useRef<string | null>(null);
+  const googleCallbackStarted = useRef(false);
 
   const user = snapshot?.user ?? null;
   const cells = snapshot?.cells ?? [];
@@ -135,6 +153,59 @@ function AppServer() {
       }
     });
     return () => { active = false; };
+  }, []);
+  useEffect(() => {
+    const callbackUrl = new URL(window.location.href);
+    const hashParams = new URLSearchParams(callbackUrl.hash.slice(1));
+    const hasOAuthCallback = callbackUrl.searchParams.has('code')
+      || callbackUrl.searchParams.has('error')
+      || hashParams.has('access_token')
+      || hashParams.has('error');
+    if (!hasOAuthCallback || googleCallbackStarted.current) return;
+    googleCallbackStarted.current = true;
+
+    const cleanCallbackUrl = () => {
+      const cleanUrl = new URL(window.location.href);
+      for (const key of ['code', 'error', 'error_code', 'error_description', 'error_uri', 'state']) {
+        cleanUrl.searchParams.delete(key);
+      }
+      const hash = new URLSearchParams(cleanUrl.hash.slice(1));
+      const hadOAuthHash = hash.has('access_token') || hash.has('error');
+      if (hadOAuthHash) cleanUrl.hash = '';
+      window.history.replaceState({}, document.title, `${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`);
+    };
+
+    setDialog('auth');
+    setAuthError('');
+    setGoogleAuthBusy(true);
+    let client: ReturnType<typeof createSupabaseAuthClient> | null = null;
+    void (async () => {
+      try {
+        const callbackError = callbackUrl.searchParams.get('error')
+          || callbackUrl.searchParams.get('error_description')
+          || hashParams.get('error');
+        if (callbackError) throw new Error('O acesso pelo Google foi cancelado ou não pôde ser concluído.');
+
+        const config = await getGoogleAuthConfig();
+        if (!config.enabled) throw new Error('O login com Google ainda não está configurado.');
+        client = createSupabaseAuthClient(config);
+        const { data, error } = await client.auth.getSession();
+        if (error) throw error;
+        if (!data.session?.access_token) throw new Error('Não foi possível concluir o login com Google. Tente novamente.');
+
+        const next = await loginWithGoogle({ accessToken: data.session.access_token });
+        acceptSnapshot(next);
+        setAuthPass('');
+        setAuthError('');
+        setDialog('none');
+      } catch (error) {
+        setAuthError(messageFrom(error));
+      } finally {
+        if (client) await client.auth.signOut({ scope: 'local' }).catch(() => undefined);
+        cleanCallbackUrl();
+        setGoogleAuthBusy(false);
+      }
+    })();
   }, []);
   useEffect(() => {
     const id = window.setInterval(() => setTick(Date.now()), 1000);
@@ -272,6 +343,25 @@ function AppServer() {
     }
   };
 
+  const startGoogleAuth = async () => {
+    setGoogleAuthBusy(true);
+    setAuthError('');
+    try {
+      const config = await getGoogleAuthConfig();
+      if (!config.enabled) throw new Error('O login com Google ainda não está configurado.');
+      const client = createSupabaseAuthClient(config);
+      const redirectTo = `${window.location.origin}${window.location.pathname}`;
+      const { error } = await client.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo },
+      });
+      if (error) throw error;
+    } catch (error) {
+      setAuthError(messageFrom(error));
+      setGoogleAuthBusy(false);
+    }
+  };
+
   const openAccount = () => {
     setAccountPage('home');
     setAccountMessage('');
@@ -282,7 +372,10 @@ function AppServer() {
     setPasswordBusy(true);
     setPasswordError('');
     try {
-      await changePassword({ currentPassword: oldPassword, newPassword });
+      await changePassword({
+        ...(user?.hasPassword ? { currentPassword: oldPassword } : {}),
+        newPassword,
+      });
       setAccountPage('home');
       setAccountMessage('Senha alterada.');
       setOldPassword('');
@@ -371,12 +464,22 @@ function AppServer() {
 
     <Modal open={dialog === 'auth'} title={authMode === 'up' ? 'Criar conta' : 'Entrar'} onClose={closeDialog} testId="dialog-auth">
       <p className="sub">{authContext || (authMode === 'up' ? 'Crie sua conta para ganhar chances e revelar células.' : 'Entre para ver suas chances e revelar células.')}</p>
+      <button className="btn google full" type="button" onClick={startGoogleAuth} disabled={googleAuthBusy || authBusy} data-testid="button-google-auth">
+        <svg className="google-mark" viewBox="0 0 48 48" aria-hidden="true">
+          <path fill="#4285F4" d="M43.6 24.5c0-1.4-.1-2.8-.4-4.1H24v7.8h11a9.4 9.4 0 0 1-4.1 6.2v5.1h6.6c3.9-3.6 6.1-8.9 6.1-15Z"/>
+          <path fill="#34A853" d="M24 44c5.5 0 10.1-1.8 13.5-4.8l-6.6-5.1c-1.8 1.2-4.1 2-6.9 2-5.3 0-9.8-3.6-11.4-8.4H5.8v5.3A20 20 0 0 0 24 44Z"/>
+          <path fill="#FBBC05" d="M12.6 27.7a12 12 0 0 1 0-7.4V15H5.8a20 20 0 0 0 0 18l6.8-5.3Z"/>
+          <path fill="#EA4335" d="M24 12.1c3 0 5.7 1 7.8 3.1l5.9-5.9C34.1 6.1 29.5 4 24 4A20 20 0 0 0 5.8 15l6.8 5.3c1.6-4.8 6.1-8.2 11.4-8.2Z"/>
+        </svg>
+        {googleAuthBusy ? 'Conectando…' : 'Continuar com Google'}
+      </button>
+      <div className="auth-divider" aria-hidden="true"><span>ou use seu e-mail</span></div>
       <form className="form" onSubmit={submitAuth} noValidate>
         {authMode === 'up' && <label className="field">Nome<input className="input" autoComplete="name" value={authName} onChange={e => setAuthName(e.target.value)} data-testid="input-name"/></label>}
         <label className="field">E-mail<input className="input" type="email" autoComplete="email" inputMode="email" value={authEmail} onChange={e => setAuthEmail(e.target.value)} data-testid="input-email"/></label>
         <label className="field">Senha<input className="input" type="password" autoComplete={authMode === 'up' ? 'new-password' : 'current-password'} value={authPass} onChange={e => setAuthPass(e.target.value)} data-testid="input-password"/></label>
         {authError && <ErrorMessage testId="error-auth">{authError}</ErrorMessage>}
-        <button className="btn full" type="submit" disabled={authBusy} data-testid="button-submit-auth">{authBusy ? 'Aguarde…' : authMode === 'up' ? 'Criar conta' : 'Entrar'}</button>
+        <button className="btn full" type="submit" disabled={authBusy || googleAuthBusy} data-testid="button-submit-auth">{authBusy ? 'Aguarde…' : authMode === 'up' ? 'Criar conta' : 'Entrar'}</button>
       </form>
       <button className="link" type="button" onClick={() => { setAuthMode(authMode === 'in' ? 'up' : 'in'); setAuthError(''); }} data-testid="button-switch-auth">{authMode === 'up' ? 'Já tem conta? Entrar' : 'Não tem conta? Criar conta'}</button>
     </Modal>
@@ -408,17 +511,17 @@ function AppServer() {
       </>}
     </Modal>
 
-    <Modal open={dialog === 'account'} title={accountPage === 'home' ? 'Minha conta' : 'Alterar senha'} onClose={closeDialog} testId="dialog-account">
+    <Modal open={dialog === 'account'} title={accountPage === 'home' ? 'Minha conta' : user?.hasPassword ? 'Alterar senha' : 'Criar senha'} onClose={closeDialog} testId="dialog-account">
       {user && accountPage === 'home' ? <div className="form">
         <div className="info"><div><small>Nome</small><span data-testid="text-account-name">{user.name}</span></div><div><small>E-mail</small><span data-testid="text-account-email">{user.email}</span></div></div>
         {accountMessage && <p className="hint" data-testid="status-account-message">{accountMessage}</p>}
         <nav className="menu" aria-label="Minha conta">
           <button className="item" type="button" onClick={() => { setDialog('none'); routeTo('mine'); }} data-testid="button-account-cells"><Grid2X2 className="icon"/><span className="lbl">Minhas células</span><span className="meta">{cellCount || ''}</span><ChevronRight className="icon chev"/></button>
-          <button className="item" type="button" onClick={() => { setAccountPage('password'); setPasswordError(''); }} data-testid="button-account-password"><LockKeyhole className="icon"/><span className="lbl">Alterar senha</span><ChevronRight className="icon chev"/></button>
+          <button className="item" type="button" onClick={() => { setAccountPage('password'); setPasswordError(''); setOldPassword(''); setNewPassword(''); }} data-testid="button-account-password"><LockKeyhole className="icon"/><span className="lbl">{user.hasPassword ? 'Alterar senha' : 'Criar senha'}</span><ChevronRight className="icon chev"/></button>
         </nav>
         <button className="btn full" type="button" onClick={signOut} data-testid="button-sign-out">Sair</button>
       </div> : <form className="form" onSubmit={submitPassword} noValidate>
-        <label className="field">Senha atual<input className="input" type="password" autoComplete="current-password" value={oldPassword} onChange={e => setOldPassword(e.target.value)} data-testid="input-old-password"/></label>
+        {user?.hasPassword && <label className="field">Senha atual<input className="input" type="password" autoComplete="current-password" value={oldPassword} onChange={e => setOldPassword(e.target.value)} data-testid="input-old-password"/></label>}
         <label className="field">Nova senha<input className="input" type="password" autoComplete="new-password" value={newPassword} onChange={e => setNewPassword(e.target.value)} data-testid="input-new-password"/></label>
         {passwordError && <ErrorMessage testId="error-password">{passwordError}</ErrorMessage>}
         <button className="btn full" type="submit" disabled={passwordBusy} data-testid="button-save-password">{passwordBusy ? 'Salvando…' : 'Salvar senha'}</button>

@@ -1,11 +1,13 @@
 import { randomUUID } from "node:crypto";
 import { Router, type IRouter, type Request, type Response } from "express";
-import { and, desc, eq, gt, sql } from "drizzle-orm";
+import { and, desc, eq, gt, isNull, sql } from "drizzle-orm";
 import {
   ChangePasswordBody,
   CreateOrderBody,
+  GetGoogleAuthConfigResponse,
   GetRevelaStateResponse,
   LoginAccountBody,
+  LoginWithGoogleBody,
   RedeemCellBody,
   RedeemCellResponse,
   RegisterAccountBody,
@@ -27,6 +29,29 @@ import {
 } from "../lib/revela";
 
 const router: IRouter = Router();
+
+type SupabaseAuthUser = {
+  id: string;
+  email?: string;
+  email_confirmed_at?: string | null;
+  app_metadata?: { provider?: string; providers?: string[] };
+  identities?: Array<{ provider?: string }>;
+  user_metadata?: { full_name?: string; name?: string };
+};
+
+function getSupabaseAuthConfig() {
+  const supabaseUrl = process.env.SUPABASE_URL?.trim() ?? "";
+  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY?.trim() ?? "";
+  return {
+    enabled: Boolean(supabaseUrl && supabaseAnonKey),
+    supabaseUrl,
+    supabaseAnonKey,
+  };
+}
+
+function isUniqueConstraintError(error: unknown): boolean {
+  return typeof error === "object" && error !== null && "code" in error && error.code === "23505";
+}
 
 function sendError(res: Response, status: number, message: string, code?: string): void {
   res.status(status).json(code ? { error: message, code } : { error: message });
@@ -95,11 +120,116 @@ router.post("/auth/login", async (req, res): Promise<void> => {
 
   const email = parsed.data.email.trim().toLowerCase();
   const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
-  if (!user || !verifyPassword(parsed.data.password, user.passwordHash)) {
+  if (!user || !user.passwordHash || !verifyPassword(parsed.data.password, user.passwordHash)) {
     sendError(res, 401, "E-mail ou senha incorretos.", "INVALID_CREDENTIALS");
     return;
   }
 
+  await createSession(user.id, res);
+  res.json(GetRevelaStateResponse.parse(await getRevelaState(user)));
+});
+
+router.get("/auth/google/config", (_req, res): void => {
+  res.json(GetGoogleAuthConfigResponse.parse(getSupabaseAuthConfig()));
+});
+
+router.post("/auth/google", async (req, res): Promise<void> => {
+  const parsed = LoginWithGoogleBody.safeParse(req.body);
+  if (!parsed.success) {
+    sendError(res, 400, "Não foi possível validar o login com Google.", "INVALID_INPUT");
+    return;
+  }
+
+  const config = getSupabaseAuthConfig();
+  if (!config.enabled) {
+    sendError(res, 503, "O login com Google ainda não está configurado.", "GOOGLE_AUTH_UNAVAILABLE");
+    return;
+  }
+
+  const identityResponse = await fetch(`${config.supabaseUrl.replace(/\/+$/, "")}/auth/v1/user`, {
+    headers: {
+      apikey: config.supabaseAnonKey,
+      authorization: `Bearer ${parsed.data.accessToken}`,
+    },
+  });
+  if (identityResponse.status === 401 || identityResponse.status === 403) {
+    sendError(res, 401, "A sessão do Google expirou. Tente entrar novamente.", "INVALID_GOOGLE_TOKEN");
+    return;
+  }
+  if (!identityResponse.ok) {
+    sendError(res, 502, "Não foi possível validar a conta do Google. Tente novamente.", "GOOGLE_AUTH_FAILED");
+    return;
+  }
+
+  const identity = await identityResponse.json() as SupabaseAuthUser;
+  const hasGoogleIdentity = identity.app_metadata?.provider === "google"
+    || identity.app_metadata?.providers?.includes("google") === true
+    || identity.identities?.some((item) => item.provider === "google") === true;
+  const email = identity.email?.trim().toLowerCase();
+  if (!identity.id || !email || !identity.email_confirmed_at || !hasGoogleIdentity) {
+    sendError(res, 401, "A conta do Google não pôde ser confirmada.", "UNVERIFIED_GOOGLE_IDENTITY");
+    return;
+  }
+
+  let user;
+  try {
+    const [linkedUser] = await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.googleSubject, identity.id))
+      .limit(1);
+
+    if (linkedUser) {
+      user = linkedUser;
+    } else {
+      const [emailUser] = await db
+        .select()
+        .from(usersTable)
+        .where(eq(usersTable.email, email))
+        .limit(1);
+
+      if (emailUser?.googleSubject && emailUser.googleSubject !== identity.id) {
+        sendError(res, 409, "Este e-mail já está vinculado a outra conta Google.", "GOOGLE_ACCOUNT_CONFLICT");
+        return;
+      }
+
+      if (emailUser) {
+        if (!emailUser.googleSubject) {
+          const [linkedByEmail] = await db
+            .update(usersTable)
+            .set({ googleSubject: identity.id })
+            .where(and(eq(usersTable.id, emailUser.id), isNull(usersTable.googleSubject)))
+            .returning();
+          user = linkedByEmail;
+        } else {
+          user = emailUser;
+        }
+      } else {
+        const displayName = identity.user_metadata?.full_name?.trim()
+          || identity.user_metadata?.name?.trim()
+          || email.split("@")[0];
+        [user] = await db.insert(usersTable).values({
+          name: displayName,
+          email,
+          googleSubject: identity.id,
+          passwordHash: null,
+          chances: 2,
+        }).returning();
+      }
+    }
+  } catch (error) {
+    if (!isUniqueConstraintError(error)) throw error;
+    [user] = await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.googleSubject, identity.id))
+      .limit(1);
+  }
+
+  if (!user) {
+    sendError(res, 409, "Não foi possível vincular esta conta Google. Tente novamente.", "GOOGLE_ACCOUNT_CONFLICT");
+    return;
+  }
   await createSession(user.id, res);
   res.json(GetRevelaStateResponse.parse(await getRevelaState(user)));
 });
@@ -117,8 +247,13 @@ router.post("/auth/change-password", async (req, res): Promise<void> => {
     sendError(res, 400, "A nova senha precisa ter ao menos 6 caracteres.", "INVALID_INPUT");
     return;
   }
-  if (!verifyPassword(parsed.data.currentPassword, user.passwordHash)) {
-    sendError(res, 401, "Senha atual incorreta.", "INVALID_PASSWORD");
+  if (user.passwordHash) {
+    if (!parsed.data.currentPassword || !verifyPassword(parsed.data.currentPassword, user.passwordHash)) {
+      sendError(res, 401, "Senha atual incorreta.", "INVALID_PASSWORD");
+      return;
+    }
+  } else if (!user.googleSubject) {
+    sendError(res, 401, "Esta conta não pode definir uma senha local.", "PASSWORD_UNAVAILABLE");
     return;
   }
 

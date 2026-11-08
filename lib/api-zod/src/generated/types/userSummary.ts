@@ -12,4 +12,5 @@ export interface UserSummary {
   email: string;
   /** @minimum 0 */
   chances: number;
+  hasPassword: boolean;
 }

@@ -12,6 +12,8 @@ export * from './cellStatePrizeKind';
 export * from './changePasswordInput';
 export * from './createOrderInput';
 export * from './createOrderInputPackCount';
+export * from './googleAuthConfig';
+export * from './googleAuthInput';
 export * from './healthStatus';
 export * from './loginInput';
 export * from './pack';

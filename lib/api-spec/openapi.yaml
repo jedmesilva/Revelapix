@@ -84,6 +84,40 @@ paths:
                 $ref: "#/components/schemas/RevelaStateResponse"
         "401":
           description: Invalid credentials
+  /auth/google/config:
+    get:
+      operationId: getGoogleAuthConfig
+      tags: [auth]
+      summary: Read public Google sign-in configuration
+      responses:
+        "200":
+          description: Public Supabase Auth configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GoogleAuthConfig"
+  /auth/google:
+    post:
+      operationId: loginWithGoogle
+      tags: [auth]
+      summary: Validate a Google identity and create an app session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GoogleAuthInput"
+      responses:
+        "200":
+          description: Signed in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RevelaStateResponse"
+        "401":
+          description: Invalid or unverified Google identity
+        "409":
+          description: Google identity conflicts with an existing account
   /auth/logout:
     post:
       operationId: logoutAccount
@@ -212,12 +246,13 @@ components:
         - status
     UserSummary:
       type: object
-      required: [id, name, email, chances]
+      required: [id, name, email, chances, hasPassword]
       properties:
         id: { type: string, format: uuid }
         name: { type: string }
         email: { type: string, format: email }
         chances: { type: integer, minimum: 0 }
+        hasPassword: { type: boolean }
     CellState:
       type: object
       required: [id, phase, isMine, redeemed, prizeValueCents, prizeKind, reservedUntil]
@@ -279,9 +314,21 @@ components:
       properties:
         email: { type: string, format: email, maxLength: 254 }
         password: { type: string, minLength: 1, maxLength: 128 }
+    GoogleAuthConfig:
+      type: object
+      required: [enabled, supabaseUrl, supabaseAnonKey]
+      properties:
+        enabled: { type: boolean }
+        supabaseUrl: { type: string }
+        supabaseAnonKey: { type: string }
+    GoogleAuthInput:
+      type: object
+      required: [accessToken]
+      properties:
+        accessToken: { type: string, minLength: 1, maxLength: 8192 }
     ChangePasswordInput:
       type: object
-      required: [currentPassword, newPassword]
+      required: [newPassword]
       properties:
         currentPassword: { type: string, minLength: 1, maxLength: 128 }
         newPassword: { type: string, minLength: 6, maxLength: 128 }

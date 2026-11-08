@@ -56,6 +56,7 @@ export function toUserSummary(user: User) {
     name: user.name,
     email: user.email,
     chances: user.chances,
+    hasPassword: user.passwordHash !== null,
   };
 }
 

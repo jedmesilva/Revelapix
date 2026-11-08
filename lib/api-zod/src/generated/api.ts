@@ -37,7 +37,8 @@ export const GetRevelaStateResponse = zod.object({
   "id": zod.string().uuid(),
   "name": zod.string(),
   "email": zod.string().email(),
-  "chances": zod.number().int().min(getRevelaStateResponseUserOneChancesMin)
+  "chances": zod.number().int().min(getRevelaStateResponseUserOneChancesMin),
+  "hasPassword": zod.boolean()
 }),zod.null()]),
   "cells": zod.array(zod.object({
   "id": zod.number().int().min(getRevelaStateResponseCellsItemIdMin).max(getRevelaStateResponseCellsItemIdMax),
@@ -104,7 +105,8 @@ export const RegisterAccountResponse = zod.object({
   "id": zod.string().uuid(),
   "name": zod.string(),
   "email": zod.string().email(),
-  "chances": zod.number().int().min(registerAccountResponseUserOneChancesMin)
+  "chances": zod.number().int().min(registerAccountResponseUserOneChancesMin),
+  "hasPassword": zod.boolean()
 }),zod.null()]),
   "cells": zod.array(zod.object({
   "id": zod.number().int().min(registerAccountResponseCellsItemIdMin).max(registerAccountResponseCellsItemIdMax),
@@ -167,7 +169,8 @@ export const LoginAccountResponse = zod.object({
   "id": zod.string().uuid(),
   "name": zod.string(),
   "email": zod.string().email(),
-  "chances": zod.number().int().min(loginAccountResponseUserOneChancesMin)
+  "chances": zod.number().int().min(loginAccountResponseUserOneChancesMin),
+  "hasPassword": zod.boolean()
 }),zod.null()]),
   "cells": zod.array(zod.object({
   "id": zod.number().int().min(loginAccountResponseCellsItemIdMin).max(loginAccountResponseCellsItemIdMax),
@@ -200,6 +203,77 @@ export const LoginAccountResponse = zod.object({
 
 
 /**
+ * @summary Read public Google sign-in configuration
+ */
+export const GetGoogleAuthConfigResponse = zod.object({
+  "enabled": zod.boolean(),
+  "supabaseUrl": zod.string(),
+  "supabaseAnonKey": zod.string()
+})
+
+
+/**
+ * @summary Validate a Google identity and create an app session
+ */
+export const loginWithGoogleBodyAccessTokenMax = 8192;
+
+
+
+export const LoginWithGoogleBody = zod.object({
+  "accessToken": zod.string().min(1).max(loginWithGoogleBodyAccessTokenMax)
+})
+
+export const loginWithGoogleResponseUserOneChancesMin = 0;
+
+export const loginWithGoogleResponseCellsItemIdMin = 0;
+export const loginWithGoogleResponseCellsItemIdMax = 83;
+
+
+
+export const loginWithGoogleResponseOrderOneCellIdMin = 0;
+export const loginWithGoogleResponseOrderOneCellIdMax = 83;
+
+
+
+export const LoginWithGoogleResponse = zod.object({
+  "user": zod.union([zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "email": zod.string().email(),
+  "chances": zod.number().int().min(loginWithGoogleResponseUserOneChancesMin),
+  "hasPassword": zod.boolean()
+}),zod.null()]),
+  "cells": zod.array(zod.object({
+  "id": zod.number().int().min(loginWithGoogleResponseCellsItemIdMin).max(loginWithGoogleResponseCellsItemIdMax),
+  "phase": zod.enum(['closed', 'reserved', 'open']),
+  "isMine": zod.boolean(),
+  "redeemed": zod.boolean(),
+  "prizeValueCents": zod.number().int().nullable(),
+  "prizeKind": zod.union([zod.literal('image'),zod.literal('stat'),zod.literal('icon'),zod.literal(null)]).nullable(),
+  "reservedUntil": zod.coerce.date().nullable()
+})),
+  "packs": zod.array(zod.object({
+  "n": zod.union([zod.literal(1),zod.literal(5),zod.literal(10),zod.literal(25)]),
+  "priceCents": zod.number().int().min(1)
+})),
+  "order": zod.union([zod.object({
+  "id": zod.string().uuid(),
+  "pack": zod.object({
+  "n": zod.union([zod.literal(1),zod.literal(5),zod.literal(10),zod.literal(25)]),
+  "priceCents": zod.number().int().min(1)
+}),
+  "cellId": zod.number().int().min(loginWithGoogleResponseOrderOneCellIdMin).max(loginWithGoogleResponseOrderOneCellIdMax).nullable(),
+  "status": zod.enum(['pending', 'paid', 'expired']),
+  "payload": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "expiresAt": zod.coerce.date()
+}),zod.null()]),
+  "serverTime": zod.coerce.date(),
+  "testPaymentsEnabled": zod.boolean()
+})
+
+
+/**
  * @summary End the current account session
  */
 export const LogoutAccountResponse = zod.void()
@@ -216,7 +290,7 @@ export const changePasswordBodyNewPasswordMax = 128;
 
 
 export const ChangePasswordBody = zod.object({
-  "currentPassword": zod.string().min(1).max(changePasswordBodyCurrentPasswordMax),
+  "currentPassword": zod.string().min(1).max(changePasswordBodyCurrentPasswordMax).optional(),
   "newPassword": zod.string().min(changePasswordBodyNewPasswordMin).max(changePasswordBodyNewPasswordMax)
 })
 
@@ -252,7 +326,8 @@ export const RevealCellResponse = zod.object({
   "id": zod.string().uuid(),
   "name": zod.string(),
   "email": zod.string().email(),
-  "chances": zod.number().int().min(revealCellResponseUserOneChancesMin)
+  "chances": zod.number().int().min(revealCellResponseUserOneChancesMin),
+  "hasPassword": zod.boolean()
 }),zod.null()]),
   "cells": zod.array(zod.object({
   "id": zod.number().int().min(revealCellResponseCellsItemIdMin).max(revealCellResponseCellsItemIdMax),
@@ -314,7 +389,8 @@ export const CreateOrderResponse = zod.object({
   "id": zod.string().uuid(),
   "name": zod.string(),
   "email": zod.string().email(),
-  "chances": zod.number().int().min(createOrderResponseUserOneChancesMin)
+  "chances": zod.number().int().min(createOrderResponseUserOneChancesMin),
+  "hasPassword": zod.boolean()
 }),zod.null()]),
   "cells": zod.array(zod.object({
   "id": zod.number().int().min(createOrderResponseCellsItemIdMin).max(createOrderResponseCellsItemIdMax),
@@ -370,7 +446,8 @@ export const SimulateOrderPaymentResponse = zod.object({
   "id": zod.string().uuid(),
   "name": zod.string(),
   "email": zod.string().email(),
-  "chances": zod.number().int().min(simulateOrderPaymentResponseUserOneChancesMin)
+  "chances": zod.number().int().min(simulateOrderPaymentResponseUserOneChancesMin),
+  "hasPassword": zod.boolean()
 }),zod.null()]),
   "cells": zod.array(zod.object({
   "id": zod.number().int().min(simulateOrderPaymentResponseCellsItemIdMin).max(simulateOrderPaymentResponseCellsItemIdMax),

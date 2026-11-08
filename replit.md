@@ -10,6 +10,7 @@ Experiência demonstrativa de células reveláveis, com contas, chances, pedidos
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API clients and validation schemas from OpenAPI.
 - `pnpm --filter @workspace/db run push` — apply schema changes to the development database.
 - Required environment: `DATABASE_URL`.
+- Google sign-in also requires `SUPABASE_URL` and `SUPABASE_ANON_KEY`. Enable Google in Supabase Auth and allow the app's origin as a redirect URL; Google credentials belong in the Supabase provider settings.
 
 ## Stack
 
@@ -28,5 +29,6 @@ Experiência demonstrativa de células reveláveis, com contas, chances, pedidos
 ## Data authority
 
 - Accounts, password hashes, sessions, chances, cell ownership, prize data, Pix orders, reservation expiry, and redemption eligibility are server-owned and persisted in PostgreSQL.
+- Google sign-in is validated by Supabase on the server, then linked to the app's PostgreSQL account by verified email and its provider identity.
 - The browser holds only transient form, navigation, and animation state; it requests server state for rendering and cannot authorize business actions.
 - Pix payment and redemption are demonstrations only. Payment simulation is disabled in production; redemptions do not verify key ownership or transfer money.
