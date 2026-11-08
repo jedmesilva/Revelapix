@@ -108,8 +108,8 @@ button:focus-visible, input:focus-visible, [tabindex="0"]:focus-visible { outlin
 .reveal-message { font-size:clamp(9px,10cqw,12px); font-weight:600; line-height:1.1; white-space:nowrap; }
 .reveal-spinner { position:relative; display:grid; place-items:center; width:48px; aspect-ratio:1; border-radius:50%; }
 .reveal-spinner::before { position:absolute; inset:0; border:2px solid var(--line-2); border-top-color:var(--accent); border-radius:inherit; animation:reveal-spinner-rotate 900ms linear infinite; content:""; }
-.reveal-spinner .icon { position:relative; width:20px; height:20px; }
 .box .icon { width:30px; height:30px; }
+.box .reveal-spinner .icon { position:relative; width:20px; height:20px; }
 .icon { fill:none; stroke:currentColor; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; }
 .hold { display:grid; justify-items:center; gap:6px; }
 .hold .icon { width:24px; height:24px; color:var(--accent); }
