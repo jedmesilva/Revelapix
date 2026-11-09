@@ -400,7 +400,6 @@ function AppServer() {
       }
       if (next.order?.status === 'expired' || !next.order) {
         setPendingCell(pendingOrder.cellId);
-        setSelectedPackId(null);
         setPackError('');
         setDialog('packs');
         return;
