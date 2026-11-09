@@ -92,9 +92,9 @@ export function CellGrid({ cells, view, reducedMotion, sparkId, revealingCellId,
         const canCancel = isMine && (cell.redemptionStatus === 'requested' || cell.redemptionStatus === 'under_review');
         const cannotRedeem = cell.redeemed || redemptionPending || cell.redemptionStatus === 'redeemed';
         const statusShownOnPixButton = item?.type === 'pix' && item.valueCents !== null && cannotRedeem;
-        const visibleRedemptionStatus = statusShownOnPixButton ? null : redemptionStatus;
+        const accessibleRedemptionStatus = statusShownOnPixButton ? null : redemptionStatus;
         return <div key={cell.id} className={`cell${pressedId === cell.id ? ' down' : ''}${cell.phase === 'open' ? ' open' : ''}${cell.phase === 'reserved' ? ' reserved' : ''}${isRevealing ? ' revealing' : ''}${isMine ? ' mine' : ''}`}
-          role={cell.phase === 'open' ? 'group' : 'button'} aria-label={isRevealing ? `Revelando célula ${cell.id + 1}` : cell.phase === 'open' ? `Célula ${cell.id + 1} revelada${visibleRedemptionStatus ? `. ${visibleRedemptionStatus}` : ''}` : cell.phase === 'reserved' ? `Célula ${cell.id + 1} reservada, abrir o Pix` : `Revelar célula ${cell.id + 1}`}
+          role={cell.phase === 'open' ? 'group' : 'button'} aria-label={isRevealing ? `Revelando célula ${cell.id + 1}` : cell.phase === 'open' ? `Célula ${cell.id + 1} revelada${accessibleRedemptionStatus ? `. ${accessibleRedemptionStatus}` : ''}` : cell.phase === 'reserved' ? `Célula ${cell.id + 1} reservada, abrir o Pix` : `Revelar célula ${cell.id + 1}`}
           aria-disabled={cell.phase !== 'open' && revealPending}
           aria-busy={isRevealing}
           tabIndex={cell.id === (shown[0]?.id ?? 0) ? 0 : -1}
@@ -110,11 +110,10 @@ export function CellGrid({ cells, view, reducedMotion, sparkId, revealingCellId,
           </> : <Gift className="icon"/>}</div>}
           {cell.phase === 'reserved' && <div className="hold"><Clock className="icon"/><span className="t">{formatTime(Math.max(0, left))}</span></div>}
           {cell.phase === 'open' && <>
-            <div className={`prize${visibleRedemptionStatus ? ' has-redemption-status' : ''}`}>
+            <div className="prize">
               {item?.type === 'image' ? <img className={item.imageUrl ? undefined : 'brand-placeholder'} src={item.imageUrl ?? '/favicon.svg'} alt={item.name} draggable={false}/> :
                 <div className="inner">{item?.type === 'pix' && item.valueCents !== null ? <><div className="stat-value">{brl.format(item.valueCents / 100)}</div><div className="stat-label">Pix</div><button type="button" className="btn" disabled={!isMine || cannotRedeem} onClick={e => { e.stopPropagation(); onRedeem(cell, e.currentTarget); }} data-testid={`button-redeem-${cell.id + 1}`}>{cannotRedeem ? redemptionStatusLabels[cell.redemptionStatus ?? 'redeemed'] : cell.redemptionStatus ? 'Solicitar novamente' : 'Resgatar'}</button>{canCancel && <button type="button" className="link cancel-redemption" onClick={e => { e.stopPropagation(); onCancelRedemption(cell.id); }} data-testid={`button-cancel-redemption-${cell.id + 1}`}>Cancelar</button>}</> : null}
                 </div>}
-              {visibleRedemptionStatus && <span className="redemption-status">{visibleRedemptionStatus}</span>}
             </div>
             {!reducedMotion && sparkId === cell.id && Array.from({ length: 8 }, (_, i) => <span key={i} className="spark" style={{ '--a': `${i * 45}deg` } as CSSProperties}/>)}
           </>}
