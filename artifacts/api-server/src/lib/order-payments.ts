@@ -134,7 +134,10 @@ export async function reconcileEfiOrder(orderId: string): Promise<void> {
   } catch (error) {
     if (
       error instanceof EfiApiError
-      && error.statusCode === 404
+      && (
+        error.statusCode === 404
+        || error.code === "cobranca_nao_encontrada"
+      )
       && order.expiresAt <= new Date()
     ) {
       await expireEfiOrder(order.id);

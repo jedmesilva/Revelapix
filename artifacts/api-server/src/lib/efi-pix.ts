@@ -180,7 +180,18 @@ function requestJson<T>(
       response.on("end", () => {
         const statusCode = response.statusCode ?? 0;
         if (statusCode < 200 || statusCode >= 300) {
-          reject(new EfiApiError(`Efí API returned HTTP ${statusCode}.`, statusCode));
+          let providerCode: string | undefined;
+          try {
+            const errorBody = JSON.parse(responseBody) as { nome?: unknown };
+            if (typeof errorBody.nome === "string") providerCode = errorBody.nome;
+          } catch {
+            // Keep the HTTP status when the provider response is not JSON.
+          }
+          reject(new EfiApiError(
+            `Efí API returned HTTP ${statusCode}.`,
+            statusCode,
+            providerCode,
+          ));
           return;
         }
         try {
