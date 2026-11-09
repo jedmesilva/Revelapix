@@ -27,7 +27,7 @@ import {
 import { brl, digits, formatTime, maskCpf, maskPhone, plural, redemptionStatusLabels } from './domain/revela';
 
 type View = 'all' | 'mine';
-type Dialog = 'none' | 'auth' | 'packs' | 'pix' | 'pix-option-confirm' | 'account' | 'redeem';
+type Dialog = 'none' | 'auth' | 'packs' | 'pix' | 'pix-option-confirm' | 'account' | 'redeem' | 'cancel-redemption-confirm';
 type KeyOption = { id: RedeemCellInputKeyType; label: string; ph: string; mode: string };
 const KEY_OPTIONS: KeyOption[] = [
   { id: 'cpf', label: 'CPF', ph: '000.000.000-00', mode: 'numeric' },
@@ -85,6 +85,9 @@ function AppServer() {
   const [packError, setPackError] = useState('');
   const [creatingOrder, setCreatingOrder] = useState(false);
   const [cancelingOrder, setCancelingOrder] = useState(false);
+  const [cancelRedemptionCellId, setCancelRedemptionCellId] = useState<number | null>(null);
+  const [cancelRedemptionBusy, setCancelRedemptionBusy] = useState(false);
+  const [cancelRedemptionError, setCancelRedemptionError] = useState('');
   const [tick, setTick] = useState(Date.now());
   const [copyLabel, setCopyLabel] = useState('Copiar código Pix');
   const [paymentStatusError, setPaymentStatusError] = useState('');
@@ -511,13 +514,37 @@ function AppServer() {
     }
   };
 
-  const onCancelRedemption = async (cellId: number) => {
-    if (!window.confirm('Cancelar esta solicitação de resgate?')) return;
+  const onCancelRedemption = (cellId: number) => {
+    setCancelRedemptionCellId(cellId);
+    setCancelRedemptionError('');
+    setCancelRedemptionBusy(false);
+    setDialog('cancel-redemption-confirm');
+  };
+
+  const closeCancelRedemptionDialog = () => {
+    if (cancelRedemptionBusy) return;
+    setCancelRedemptionCellId(null);
+    setCancelRedemptionError('');
+    setDialog('none');
+  };
+
+  const confirmCancelRedemption = async () => {
+    if (cancelRedemptionCellId === null || cancelRedemptionBusy) return;
+    setCancelRedemptionBusy(true);
+    setCancelRedemptionError('');
     try {
-      await cancelCellRedemption(cellId);
-      await refreshState();
+      await cancelCellRedemption(cancelRedemptionCellId);
+      setCancelRedemptionCellId(null);
+      setDialog('none');
+      try {
+        await refreshState();
+      } catch (error) {
+        setLoadError(messageFrom(error));
+      }
     } catch (error) {
-      setLoadError(messageFrom(error));
+      setCancelRedemptionError(messageFrom(error));
+    } finally {
+      setCancelRedemptionBusy(false);
     }
   };
 
@@ -722,6 +749,36 @@ function AppServer() {
         <button className="btn full" type="submit" disabled={passwordBusy} data-testid="button-save-password">{passwordBusy ? 'Salvando…' : 'Salvar senha'}</button>
         <button className="link" type="button" onClick={() => setAccountPage('home')} data-testid="button-back-account">Voltar</button>
       </form>}
+    </Modal>
+
+    <Modal
+      open={dialog === 'cancel-redemption-confirm'}
+      title="Cancelar solicitação de resgate?"
+      onClose={closeCancelRedemptionDialog}
+      testId="dialog-cancel-redemption"
+    >
+      <div className="form">
+        <p className="sub">A solicitação de resgate será cancelada. Deseja continuar?</p>
+        {cancelRedemptionError && <ErrorMessage testId="error-cancel-redemption">{cancelRedemptionError}</ErrorMessage>}
+        <button
+          className="btn full ghost"
+          type="button"
+          disabled={cancelRedemptionBusy}
+          onClick={closeCancelRedemptionDialog}
+          data-testid="button-keep-redemption"
+        >
+          Manter solicitação
+        </button>
+        <button
+          className="btn full"
+          type="button"
+          disabled={cancelRedemptionBusy}
+          onClick={confirmCancelRedemption}
+          data-testid="button-confirm-cancel-redemption"
+        >
+          {cancelRedemptionBusy ? 'Cancelando…' : 'Cancelar resgate'}
+        </button>
+      </div>
     </Modal>
 
     <Modal open={dialog === 'redeem'} title={redeemDone ? 'Resgate solicitado' : 'Resgatar saldo'} onClose={closeDialog} testId="dialog-redeem">
