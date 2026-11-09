@@ -2,10 +2,12 @@ import type {
   ChangePasswordInput,
   CancelRedemptionResponse,
   CreateOrderInput,
+  GetRevelaCellsParams,
   LoginInput,
   RedeemCellInput,
   RedemptionResult,
   RegisterInput,
+  RevelaCellsResponse,
   RevelaStateResponse,
 } from "@workspace/api-client-react";
 
@@ -52,6 +54,15 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 
 export function getRevelaState(): Promise<RevelaStateResponse> {
   return request<RevelaStateResponse>("/api/revela/state");
+}
+
+export function getRevelaCells(params: GetRevelaCellsParams): Promise<RevelaCellsResponse> {
+  const query = new URLSearchParams({
+    view: params.view ?? "all",
+    start: String(params.start ?? 0),
+    limit: String(params.limit ?? 120),
+  });
+  return request<RevelaCellsResponse>(`/api/revela/cells?${query.toString()}`);
 }
 
 export function registerAccount(data: RegisterInput): Promise<RevelaStateResponse> {

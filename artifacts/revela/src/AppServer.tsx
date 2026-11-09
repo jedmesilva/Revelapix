@@ -71,6 +71,7 @@ function AppServer() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [serverOffset, setServerOffset] = useState(0);
+  const [cellsRevision, setCellsRevision] = useState(0);
   const [view, setView] = useState<View>('all');
   const [dialog, setDialog] = useState<Dialog>('none');
   const [authMode, setAuthMode] = useState<'in' | 'up'>('in');
@@ -95,6 +96,7 @@ function AppServer() {
   const [redeemType, setRedeemType] = useState<RedeemCellInputKeyType>('cpf');
   const [redeemKey, setRedeemKey] = useState('');
   const [redeemCpf, setRedeemCpf] = useState('');
+  const [selectedRedeemCell, setSelectedRedeemCell] = useState<CellState | null>(null);
   const [redeemError, setRedeemError] = useState('');
   const [redeemDone, setRedeemDone] = useState<RedemptionResult | null>(null);
   const [redeemBusy, setRedeemBusy] = useState(false);
@@ -114,12 +116,10 @@ function AppServer() {
   serverOffsetRef.current = serverOffset;
 
   const user = snapshot?.user ?? null;
-  const cells = snapshot?.cells ?? [];
   const order = snapshot?.order ?? null;
   const serverNow = tick + serverOffset;
   const left = order ? Math.max(0, Date.parse(order.expiresAt) - serverNow) : 0;
-  const cellCount = cells.filter(cell => cell.isMine).length;
-  const selectedRedeemCell = cells.find(cell => cell.id === redeemCellId);
+  const cellCount = snapshot?.myCellCount ?? 0;
   const statusLabel = order?.status === 'paid'
     ? 'Pagamento confirmado'
     : order?.status === 'expired'
@@ -143,6 +143,7 @@ function AppServer() {
   const acceptSnapshot = (next: RevelaStateResponse) => {
     setSnapshot(next);
     setServerOffset(Date.parse(next.serverTime) - Date.now());
+    setCellsRevision(current => current + 1);
     setLoadError('');
     setLoading(false);
   };
@@ -151,6 +152,7 @@ function AppServer() {
     const next = await getRevelaState();
     setSnapshot(next);
     setServerOffset(Date.parse(next.serverTime) - Date.now());
+    setCellsRevision(current => current + 1);
     setLoadError('');
     setLoading(false);
     return next;
@@ -267,6 +269,7 @@ function AppServer() {
     setRedeemType('cpf');
     setRedeemKey('');
     setRedeemCpf('');
+    setSelectedRedeemCell(null);
     setRedeemDone(null);
     setDialog('none');
   }, []);
@@ -483,6 +486,7 @@ function AppServer() {
       return;
     }
     setRedeemCellId(cell.id);
+    setSelectedRedeemCell(cell);
     setRedeemType('cpf');
     setRedeemKey('');
     setRedeemCpf('');
@@ -591,7 +595,7 @@ function AppServer() {
         <p className="sub">Você ainda não revelou nenhuma célula.</p>
         <button className="btn" type="button" onClick={() => routeTo('all')} data-testid="button-see-all">Ver todas as células</button>
       </div>}
-      {!loading && snapshot && <CellGrid cells={cells} view={view} reducedMotion={reducedMotion} sparkId={sparkId} revealingCellId={revealingCellId} onCell={onCell} onRedeem={openRedeem} onCancelRedemption={onCancelRedemption}/>}
+      {!loading && snapshot && !(view === 'mine' && cellCount === 0) && <CellGrid totalCount={view === 'mine' ? cellCount : snapshot.cellCount} refreshVersion={cellsRevision} view={view} reducedMotion={reducedMotion} sparkId={sparkId} revealingCellId={revealingCellId} onCell={onCell} onRedeem={openRedeem} onCancelRedemption={onCancelRedemption}/>}
     </main>
 
     <Modal open={dialog === 'auth'} title={authMode === 'up' ? 'Criar conta' : 'Entrar'} onClose={closeDialog} testId="dialog-auth">

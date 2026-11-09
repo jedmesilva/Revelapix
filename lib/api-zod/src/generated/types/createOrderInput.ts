@@ -14,7 +14,7 @@ export interface CreateOrderInput {
   packId: string;
   /**
      * @minimum 0
-     * @maximum 83
+     * @maximum 999999
      * @nullable
      */
   cellId?: number | null;

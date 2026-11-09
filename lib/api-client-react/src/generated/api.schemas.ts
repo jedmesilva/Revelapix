@@ -65,7 +65,7 @@ export const CellStateRedemptionStatus = {
 export interface CellState {
   /**
      * @minimum 0
-     * @maximum 83
+     * @maximum 999999
      */
   id: number;
   phase: CellStatePhase;
@@ -76,6 +76,20 @@ export interface CellState {
   item: CellItem | null;
   /** @nullable */
   reservedUntil: string | null;
+}
+
+export interface RevelaCellsResponse {
+  /**
+     * @minimum 0
+     * @maximum 999999
+     */
+  start: number;
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
+  total: number;
+  cells: CellState[];
 }
 
 export interface Pack {
@@ -111,7 +125,7 @@ export interface PixOrder {
   pack: Pack;
   /**
      * @minimum 0
-     * @maximum 83
+     * @maximum 999999
      * @nullable
      */
   cellId: number | null;
@@ -123,7 +137,16 @@ export interface PixOrder {
 
 export interface RevelaStateResponse {
   user: UserSummary | null;
-  cells: CellState[];
+  /**
+     * @minimum 1
+     * @maximum 1000000
+     */
+  cellCount: number;
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
+  myCellCount: number;
   packs: ChancePlan[];
   order: PixOrder | null;
   serverTime: string;
@@ -176,7 +199,7 @@ export interface CreateOrderInput {
   packId: string;
   /**
      * @minimum 0
-     * @maximum 83
+     * @maximum 999999
      * @nullable
      */
   cellId?: number | null;
@@ -195,7 +218,7 @@ export const RedeemCellInputKeyType = {
 export interface RedeemCellInput {
   /**
      * @minimum 0
-     * @maximum 83
+     * @maximum 999999
      */
   cellId: number;
   keyType: RedeemCellInputKeyType;
@@ -243,6 +266,28 @@ export interface CancelRedemptionResponse {
   requestId: string;
   status: CancelRedemptionResponseStatus;
 }
+
+export type GetRevelaCellsParams = {
+view?: GetRevelaCellsView;
+/**
+ * @minimum 0
+ * @maximum 999999
+ */
+start?: number;
+/**
+ * @minimum 1
+ * @maximum 500
+ */
+limit?: number;
+};
+
+export type GetRevelaCellsView = typeof GetRevelaCellsView[keyof typeof GetRevelaCellsView];
+
+
+export const GetRevelaCellsView = {
+  all: 'all',
+  mine: 'mine',
+} as const;
 
 export type CompleteGoogleAuthParams = {
 /**

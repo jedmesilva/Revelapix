@@ -29,7 +29,11 @@ export const cellsTable = pgTable(
     reservedByUserId: uuid("reserved_by_user_id").references(() => usersTable.id, { onDelete: "set null" }),
     reservedUntil: timestamp("reserved_until", { withTimezone: true }),
   },
-  (table) => [index("revela_cells_item_id_idx").on(table.itemId)],
+  (table) => [
+    index("revela_cells_item_id_idx").on(table.itemId),
+    index("revela_cells_owner_id_idx").on(table.ownerUserId, table.id),
+    index("revela_cells_phase_reserved_until_idx").on(table.phase, table.reservedUntil),
+  ],
 ).enableRLS();
 
 export type Cell = typeof cellsTable.$inferSelect;

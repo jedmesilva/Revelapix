@@ -12,7 +12,8 @@
     "push-force": "drizzle-kit push --force --config ./drizzle.config.ts",
     "secure-public-api": "node ./scripts/apply-public-api-security.mjs",
     "verify-public-api-security": "node ./scripts/verify-public-api-security.mjs",
-    "seed": "node ./scripts/seed-chance-plans.mjs"
+    "seed": "node ./scripts/seed-chance-plans.mjs",
+    "seed-cells": "node ./scripts/seed-cells.mjs"
   },
   "dependencies": {
     "drizzle-orm": "catalog:",

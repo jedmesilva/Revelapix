@@ -1,44 +1,40 @@
-import { and, asc, desc, eq, inArray, isNull, lte } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNull, lt, lte, sql } from "drizzle-orm";
 import {
   cellsTable,
   chancePlansTable,
   db,
   itemsTable,
   ordersTable,
+  type Cell,
+  type Item,
   type User,
   usersTable,
 } from "@workspace/db";
 
-export const CELL_COUNT = 84;
+export const CELL_COUNT = 1_000_000;
 export const RESERVATION_MS = 120_000;
 
-const prizeKinds = ["image", "stat", "icon", "stat", "image", "stat", "image"] as const;
+const LEGACY_CELL_COUNT = 84;
 let boardInitialized = false;
 
-export function prizeValueCents(id: number): number {
-  return 590 + ((id * 37) % 95) * 100;
+export class BoardNotReadyError extends Error {
+  constructor() {
+    super("The cell board has not been fully seeded.");
+    this.name = "BoardNotReadyError";
+  }
 }
 
-export function prizeKind(id: number): (typeof prizeKinds)[number] {
-  return prizeKinds[id % prizeKinds.length];
-}
-
-export async function ensureBoard(): Promise<void> {
+export async function ensureLegacyCatalog(): Promise<void> {
   if (boardInitialized) return;
-  const rows = Array.from({ length: CELL_COUNT }, (_, id) => ({
-    id,
-    prizeValueCents: prizeValueCents(id),
-    prizeKind: prizeKind(id),
-  }));
-
   await db.transaction(async (tx) => {
-    await tx.insert(cellsTable).values(rows).onConflictDoNothing();
-
     // Migrate existing demo prizes into the item catalog without changing cell ownership or status.
     const cellsWithoutItems = await tx
       .select()
       .from(cellsTable)
-      .where(isNull(cellsTable.itemId))
+      .where(and(
+        isNull(cellsTable.itemId),
+        lte(cellsTable.id, LEGACY_CELL_COUNT - 1),
+      ))
       .for("update");
     if (cellsWithoutItems.length === 0) return;
 
@@ -115,16 +111,99 @@ export function toUserSummary(user: User) {
   };
 }
 
-export async function getRevelaState(user: User | null) {
-  await ensureBoard();
-  const now = new Date();
-  await expireReservations(now);
+function toCellState(cell: Cell, item: Item | null, user: User | null) {
+  if (cell.phase === "open" && (!cell.itemId || !item)) {
+    throw new Error(`Revealed cell ${cell.id} is missing its catalog item.`);
+  }
+  const isMine = Boolean(user && cell.ownerUserId === user.id);
+  return {
+    id: cell.id,
+    phase: cell.phase,
+    isMine,
+    redeemed: isMine && cell.redeemed,
+    redemptionStatus: isMine
+      ? cell.redemptionStatus ?? (cell.redeemed ? "redeemed" : null)
+      : null,
+    item: cell.phase === "open" && item
+      ? {
+          id: item.id,
+          type: item.type,
+          name: item.name,
+          valueCents: item.type === "pix" ? item.valueCents : null,
+          imageUrl: item.type === "image" ? getPublicImageUrl(item.imagePath) : null,
+        }
+      : null,
+    reservedUntil: cell.phase === "reserved" && cell.reservedUntil
+      ? cell.reservedUntil.toISOString()
+      : null,
+  };
+}
 
-  const cells = await db
+export async function getCellWindow(
+  user: User | null,
+  view: "all" | "mine",
+  start: number,
+  limit: number,
+) {
+  await ensureLegacyCatalog();
+
+  if (view === "all") {
+    const safeStart = Math.min(start, CELL_COUNT);
+    const safeLimit = Math.min(limit, CELL_COUNT - safeStart);
+    const rows = await db
+      .select({ cell: cellsTable, item: itemsTable })
+      .from(cellsTable)
+      .leftJoin(itemsTable, eq(cellsTable.itemId, itemsTable.id))
+      .where(and(
+        gte(cellsTable.id, safeStart),
+        lt(cellsTable.id, safeStart + safeLimit),
+      ))
+      .orderBy(asc(cellsTable.id));
+
+    if (rows.length !== safeLimit) {
+      throw new BoardNotReadyError();
+    }
+    return {
+      start: safeStart,
+      total: CELL_COUNT,
+      cells: rows.map(({ cell, item }) => toCellState(cell, item, user)),
+    };
+  }
+
+  if (!user) {
+    throw new Error("The personal cell view requires a session.");
+  }
+  const [countRow] = await db
+    .select({ total: sql<number>`count(*)::int` })
+    .from(cellsTable)
+    .where(eq(cellsTable.ownerUserId, user.id));
+  const total = countRow?.total ?? 0;
+  const rows = await db
     .select({ cell: cellsTable, item: itemsTable })
     .from(cellsTable)
     .leftJoin(itemsTable, eq(cellsTable.itemId, itemsTable.id))
-    .orderBy(cellsTable.id);
+    .where(eq(cellsTable.ownerUserId, user.id))
+    .orderBy(asc(cellsTable.id))
+    .limit(limit)
+    .offset(start);
+  return {
+    start,
+    total,
+    cells: rows.map(({ cell, item }) => toCellState(cell, item, user)),
+  };
+}
+
+export async function getRevelaState(user: User | null) {
+  await ensureLegacyCatalog();
+  const now = new Date();
+  await expireReservations(now);
+
+  const [mineCount] = user
+    ? await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(cellsTable)
+        .where(eq(cellsTable.ownerUserId, user.id))
+    : [{ count: 0 }];
   const plans = await db
     .select()
     .from(chancePlansTable)
@@ -142,33 +221,8 @@ export async function getRevelaState(user: User | null) {
 
   return {
     user: user ? toUserSummary(user) : null,
-    cells: cells.map(({ cell, item }) => {
-      if (cell.itemId === null || item === null) {
-        throw new Error(`Cell ${cell.id} is missing its catalog item.`);
-      }
-      const isMine = Boolean(user && cell.ownerUserId === user.id);
-      return {
-        id: cell.id,
-        phase: cell.phase,
-        isMine,
-        redeemed: isMine && cell.redeemed,
-        redemptionStatus: isMine
-          ? cell.redemptionStatus ?? (cell.redeemed ? "redeemed" : null)
-          : null,
-        item: cell.phase === "open" && item
-          ? {
-              id: item.id,
-              type: item.type,
-              name: item.name,
-              valueCents: item.type === "pix" ? item.valueCents : null,
-              imageUrl: item.type === "image" ? getPublicImageUrl(item.imagePath) : null,
-            }
-          : null,
-        reservedUntil: cell.phase === "reserved" && cell.reservedUntil
-          ? cell.reservedUntil.toISOString()
-          : null,
-      };
-    }),
+    cellCount: CELL_COUNT,
+    myCellCount: mineCount?.count ?? 0,
     packs: plans.map((plan) => ({
       id: plan.id,
       n: plan.chances,

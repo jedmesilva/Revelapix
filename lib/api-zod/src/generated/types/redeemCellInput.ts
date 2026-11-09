@@ -10,7 +10,7 @@ import type { RedeemCellInputKeyType } from './redeemCellInputKeyType';
 export interface RedeemCellInput {
   /**
      * @minimum 0
-     * @maximum 83
+     * @maximum 999999
      */
   cellId: number;
   keyType: RedeemCellInputKeyType;

@@ -7,6 +7,8 @@ import {
   CancelCellRedemptionParams,
   CancelCellRedemptionResponse,
   CreateOrderBody,
+  GetRevelaCellsQueryParams,
+  GetRevelaCellsResponse,
   GetRevelaStateResponse,
   LoginAccountBody,
   RedeemCellBody,
@@ -65,8 +67,10 @@ import {
 } from "../lib/efi-pix";
 import { cancelPendingEfiOrder, reconcileEfiOrder } from "../lib/order-payments";
 import {
-  ensureBoard,
+  BoardNotReadyError,
+  ensureLegacyCatalog,
   expireReservations,
+  getCellWindow,
   getRevelaState,
   RESERVATION_MS,
 } from "../lib/revela";
@@ -104,6 +108,39 @@ router.get("/revela/state", async (req, res): Promise<void> => {
   const user = await getSessionUser(req);
   const state = await getRevelaState(user);
   res.json(GetRevelaStateResponse.parse(state));
+});
+
+router.get("/revela/cells", async (req, res): Promise<void> => {
+  const parsed = GetRevelaCellsQueryParams.safeParse(req.query);
+  if (!parsed.success) {
+    sendError(res, 400, "Intervalo de células inválido.", "INVALID_CELL_WINDOW");
+    return;
+  }
+  const user = await getSessionUser(req);
+  if (parsed.data.view === "mine" && !user) {
+    sendError(res, 401, "Entre na sua conta para ver suas células.", "AUTH_REQUIRED");
+    return;
+  }
+
+  try {
+    const window = await getCellWindow(
+      user,
+      parsed.data.view,
+      parsed.data.start,
+      parsed.data.limit,
+    );
+    res.json(GetRevelaCellsResponse.parse(window));
+  } catch (error) {
+    if (error instanceof BoardNotReadyError) {
+      req.log.warn(
+        { start: parsed.data.start, limit: parsed.data.limit },
+        "The cell board is not fully seeded",
+      );
+      sendError(res, 503, "A grade ainda está sendo preparada. Tente novamente em instantes.", "BOARD_NOT_READY");
+      return;
+    }
+    throw error;
+  }
 });
 
 router.post("/auth/register", registerRateLimiter, async (req, res): Promise<void> => {
@@ -339,7 +376,7 @@ router.post("/cells/:cellId/reveal", revealRateLimiter, async (req, res): Promis
     return;
   }
 
-  await ensureBoard();
+  await ensureLegacyCatalog();
   await expireReservations();
   const result = await db.transaction(async (tx) => {
     await tx.execute(cashLedgerLockQuery);
@@ -398,7 +435,7 @@ router.post("/orders", createOrderRateLimiter, async (req, res): Promise<void> =
     return;
   }
 
-  await ensureBoard();
+  await ensureLegacyCatalog();
   const createdAt = new Date();
   const expiresAt = new Date(createdAt.getTime() + RESERVATION_MS);
   const orderId = randomUUID();
@@ -785,7 +822,7 @@ router.post("/redemptions", redemptionRateLimiter, async (req, res): Promise<voi
     return;
   }
 
-  await ensureBoard();
+  await ensureLegacyCatalog();
   const redemption = await db.transaction(async (tx) => {
     await tx.execute(cashLedgerLockQuery);
     const isTest = prizeFundUsesTestMoney();

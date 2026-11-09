@@ -29,11 +29,13 @@ import type {
   ChangePasswordInput,
   CompleteGoogleAuthParams,
   CreateOrderInput,
+  GetRevelaCellsParams,
   HealthStatus,
   LoginInput,
   RedeemCellInput,
   RedemptionResult,
   RegisterInput,
+  RevelaCellsResponse,
   RevelaStateResponse
 } from './api.schemas';
 
@@ -356,6 +358,114 @@ export function useGetRevelaState<TData = Awaited<ReturnType<typeof getRevelaSta
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getGetRevelaStateQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetRevelaCellsUrl = (params?: GetRevelaCellsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/revela/cells?${stringifiedParams}` : `/api/revela/cells`
+}
+
+/**
+ * @summary Read a bounded window of cells
+ */
+export const getRevelaCells = async (params?: GetRevelaCellsParams, options?: Parameters<typeof customFetch>[1]): Promise<RevelaCellsResponse> => {
+
+  return customFetch<RevelaCellsResponse>(getGetRevelaCellsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetRevelaCellsQueryKey = (params?: GetRevelaCellsParams,) => {
+    return [
+    `/api/revela/cells`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetRevelaCellsQueryOptions = <TData = Awaited<ReturnType<typeof getRevelaCells>>, TError = ErrorType<void>>(params?: GetRevelaCellsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getRevelaCells>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetRevelaCellsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getRevelaCells>>> = ({ signal }) => getRevelaCells(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getRevelaCells>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetRevelaCellsQueryResult = NonNullable<Awaited<ReturnType<typeof getRevelaCells>>>
+export type GetRevelaCellsQueryError = ErrorType<void>
+
+
+export function useGetRevelaCells<TData = Awaited<ReturnType<typeof getRevelaCells>>, TError = ErrorType<void>>(
+ params: undefined |  GetRevelaCellsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getRevelaCells>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getRevelaCells>>,
+          TError,
+          Awaited<ReturnType<typeof getRevelaCells>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetRevelaCells<TData = Awaited<ReturnType<typeof getRevelaCells>>, TError = ErrorType<void>>(
+ params?: GetRevelaCellsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getRevelaCells>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getRevelaCells>>,
+          TError,
+          Awaited<ReturnType<typeof getRevelaCells>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetRevelaCells<TData = Awaited<ReturnType<typeof getRevelaCells>>, TError = ErrorType<void>>(
+ params?: GetRevelaCellsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getRevelaCells>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Read a bounded window of cells
+ */
+
+export function useGetRevelaCells<TData = Awaited<ReturnType<typeof getRevelaCells>>, TError = ErrorType<void>>(
+ params?: GetRevelaCellsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getRevelaCells>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetRevelaCellsQueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

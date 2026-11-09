@@ -12,7 +12,7 @@ import type { CellStateRedemptionStatus } from './cellStateRedemptionStatus';
 export interface CellState {
   /**
      * @minimum 0
-     * @maximum 83
+     * @maximum 999999
      */
   id: number;
   phase: CellStatePhase;

@@ -32,9 +32,10 @@ export const GetPublicObjectResponse = zod.unknown()
  */
 export const getRevelaStateResponseUserOneChancesMin = 0;
 
-export const getRevelaStateResponseCellsItemIdMin = 0;
-export const getRevelaStateResponseCellsItemIdMax = 83;
+export const getRevelaStateResponseCellCountMax = 1000000;
 
+export const getRevelaStateResponseMyCellCountMin = 0;
+export const getRevelaStateResponseMyCellCountMax = 1000000;
 
 export const getRevelaStateResponsePacksItemIdMax = 64;
 
@@ -43,7 +44,7 @@ export const getRevelaStateResponsePacksItemIdMax = 64;
 
 
 export const getRevelaStateResponseOrderOneCellIdMin = 0;
-export const getRevelaStateResponseOrderOneCellIdMax = 83;
+export const getRevelaStateResponseOrderOneCellIdMax = 999999;
 
 
 
@@ -55,21 +56,8 @@ export const GetRevelaStateResponse = zod.object({
   "chances": zod.number().int().min(getRevelaStateResponseUserOneChancesMin),
   "hasPassword": zod.boolean()
 }),zod.null()]),
-  "cells": zod.array(zod.object({
-  "id": zod.number().int().min(getRevelaStateResponseCellsItemIdMin).max(getRevelaStateResponseCellsItemIdMax),
-  "phase": zod.enum(['closed', 'reserved', 'open']),
-  "isMine": zod.boolean(),
-  "redeemed": zod.boolean(),
-  "redemptionStatus": zod.union([zod.literal('requested'),zod.literal('under_review'),zod.literal('approved'),zod.literal('rejected'),zod.literal('cancelled'),zod.literal('processing'),zod.literal('redeemed'),zod.literal(null)]).nullable(),
-  "item": zod.union([zod.object({
-  "id": zod.number().int().min(1),
-  "type": zod.enum(['pix', 'image']),
-  "name": zod.string(),
-  "valueCents": zod.number().int().nullable(),
-  "imageUrl": zod.string().nullable()
-}),zod.null()]),
-  "reservedUntil": zod.coerce.date().nullable()
-})),
+  "cellCount": zod.number().int().min(1).max(getRevelaStateResponseCellCountMax),
+  "myCellCount": zod.number().int().min(getRevelaStateResponseMyCellCountMin).max(getRevelaStateResponseMyCellCountMax),
   "packs": zod.array(zod.object({
   "id": zod.string().min(1).max(getRevelaStateResponsePacksItemIdMax),
   "n": zod.number().int().min(1),
@@ -93,6 +81,58 @@ export const GetRevelaStateResponse = zod.object({
 
 
 /**
+ * @summary Read a bounded window of cells
+ */
+export const getRevelaCellsQueryViewDefault = `all`;
+export const getRevelaCellsQueryStartDefault = 0;
+export const getRevelaCellsQueryStartMin = 0;
+export const getRevelaCellsQueryStartMax = 999999;
+
+export const getRevelaCellsQueryLimitDefault = 120;
+export const getRevelaCellsQueryLimitMax = 500;
+
+
+
+export const GetRevelaCellsQueryParams = zod.object({
+  "view": zod.enum(['all', 'mine']).default(getRevelaCellsQueryViewDefault),
+  "start": zod.coerce.number().int().min(getRevelaCellsQueryStartMin).max(getRevelaCellsQueryStartMax).default(getRevelaCellsQueryStartDefault),
+  "limit": zod.coerce.number().int().min(1).max(getRevelaCellsQueryLimitMax).default(getRevelaCellsQueryLimitDefault)
+})
+
+export const getRevelaCellsResponseStartMin = 0;
+export const getRevelaCellsResponseStartMax = 999999;
+
+export const getRevelaCellsResponseTotalMin = 0;
+export const getRevelaCellsResponseTotalMax = 1000000;
+
+export const getRevelaCellsResponseCellsItemIdMin = 0;
+export const getRevelaCellsResponseCellsItemIdMax = 999999;
+
+
+
+
+export const GetRevelaCellsResponse = zod.object({
+  "start": zod.number().int().min(getRevelaCellsResponseStartMin).max(getRevelaCellsResponseStartMax),
+  "total": zod.number().int().min(getRevelaCellsResponseTotalMin).max(getRevelaCellsResponseTotalMax),
+  "cells": zod.array(zod.object({
+  "id": zod.number().int().min(getRevelaCellsResponseCellsItemIdMin).max(getRevelaCellsResponseCellsItemIdMax),
+  "phase": zod.enum(['closed', 'reserved', 'open']),
+  "isMine": zod.boolean(),
+  "redeemed": zod.boolean(),
+  "redemptionStatus": zod.union([zod.literal('requested'),zod.literal('under_review'),zod.literal('approved'),zod.literal('rejected'),zod.literal('cancelled'),zod.literal('processing'),zod.literal('redeemed'),zod.literal(null)]).nullable(),
+  "item": zod.union([zod.object({
+  "id": zod.number().int().min(1),
+  "type": zod.enum(['pix', 'image']),
+  "name": zod.string(),
+  "valueCents": zod.number().int().nullable(),
+  "imageUrl": zod.string().nullable()
+}),zod.null()]),
+  "reservedUntil": zod.coerce.date().nullable()
+}))
+})
+
+
+/**
  * @summary Create an account and session
  */
 export const registerAccountBodyNameMax = 100;
@@ -112,9 +152,10 @@ export const RegisterAccountBody = zod.object({
 
 export const registerAccountResponseUserOneChancesMin = 0;
 
-export const registerAccountResponseCellsItemIdMin = 0;
-export const registerAccountResponseCellsItemIdMax = 83;
+export const registerAccountResponseCellCountMax = 1000000;
 
+export const registerAccountResponseMyCellCountMin = 0;
+export const registerAccountResponseMyCellCountMax = 1000000;
 
 export const registerAccountResponsePacksItemIdMax = 64;
 
@@ -123,7 +164,7 @@ export const registerAccountResponsePacksItemIdMax = 64;
 
 
 export const registerAccountResponseOrderOneCellIdMin = 0;
-export const registerAccountResponseOrderOneCellIdMax = 83;
+export const registerAccountResponseOrderOneCellIdMax = 999999;
 
 
 
@@ -135,21 +176,8 @@ export const RegisterAccountResponse = zod.object({
   "chances": zod.number().int().min(registerAccountResponseUserOneChancesMin),
   "hasPassword": zod.boolean()
 }),zod.null()]),
-  "cells": zod.array(zod.object({
-  "id": zod.number().int().min(registerAccountResponseCellsItemIdMin).max(registerAccountResponseCellsItemIdMax),
-  "phase": zod.enum(['closed', 'reserved', 'open']),
-  "isMine": zod.boolean(),
-  "redeemed": zod.boolean(),
-  "redemptionStatus": zod.union([zod.literal('requested'),zod.literal('under_review'),zod.literal('approved'),zod.literal('rejected'),zod.literal('cancelled'),zod.literal('processing'),zod.literal('redeemed'),zod.literal(null)]).nullable(),
-  "item": zod.union([zod.object({
-  "id": zod.number().int().min(1),
-  "type": zod.enum(['pix', 'image']),
-  "name": zod.string(),
-  "valueCents": zod.number().int().nullable(),
-  "imageUrl": zod.string().nullable()
-}),zod.null()]),
-  "reservedUntil": zod.coerce.date().nullable()
-})),
+  "cellCount": zod.number().int().min(1).max(registerAccountResponseCellCountMax),
+  "myCellCount": zod.number().int().min(registerAccountResponseMyCellCountMin).max(registerAccountResponseMyCellCountMax),
   "packs": zod.array(zod.object({
   "id": zod.string().min(1).max(registerAccountResponsePacksItemIdMax),
   "n": zod.number().int().min(1),
@@ -188,9 +216,10 @@ export const LoginAccountBody = zod.object({
 
 export const loginAccountResponseUserOneChancesMin = 0;
 
-export const loginAccountResponseCellsItemIdMin = 0;
-export const loginAccountResponseCellsItemIdMax = 83;
+export const loginAccountResponseCellCountMax = 1000000;
 
+export const loginAccountResponseMyCellCountMin = 0;
+export const loginAccountResponseMyCellCountMax = 1000000;
 
 export const loginAccountResponsePacksItemIdMax = 64;
 
@@ -199,7 +228,7 @@ export const loginAccountResponsePacksItemIdMax = 64;
 
 
 export const loginAccountResponseOrderOneCellIdMin = 0;
-export const loginAccountResponseOrderOneCellIdMax = 83;
+export const loginAccountResponseOrderOneCellIdMax = 999999;
 
 
 
@@ -211,21 +240,8 @@ export const LoginAccountResponse = zod.object({
   "chances": zod.number().int().min(loginAccountResponseUserOneChancesMin),
   "hasPassword": zod.boolean()
 }),zod.null()]),
-  "cells": zod.array(zod.object({
-  "id": zod.number().int().min(loginAccountResponseCellsItemIdMin).max(loginAccountResponseCellsItemIdMax),
-  "phase": zod.enum(['closed', 'reserved', 'open']),
-  "isMine": zod.boolean(),
-  "redeemed": zod.boolean(),
-  "redemptionStatus": zod.union([zod.literal('requested'),zod.literal('under_review'),zod.literal('approved'),zod.literal('rejected'),zod.literal('cancelled'),zod.literal('processing'),zod.literal('redeemed'),zod.literal(null)]).nullable(),
-  "item": zod.union([zod.object({
-  "id": zod.number().int().min(1),
-  "type": zod.enum(['pix', 'image']),
-  "name": zod.string(),
-  "valueCents": zod.number().int().nullable(),
-  "imageUrl": zod.string().nullable()
-}),zod.null()]),
-  "reservedUntil": zod.coerce.date().nullable()
-})),
+  "cellCount": zod.number().int().min(1).max(loginAccountResponseCellCountMax),
+  "myCellCount": zod.number().int().min(loginAccountResponseMyCellCountMin).max(loginAccountResponseMyCellCountMax),
   "packs": zod.array(zod.object({
   "id": zod.string().min(1).max(loginAccountResponsePacksItemIdMax),
   "n": zod.number().int().min(1),
@@ -299,7 +315,7 @@ export const ChangePasswordResponse = zod.void()
  * @summary Reveal a cell using one chance
  */
 export const revealCellPathCellIdMin = 0;
-export const revealCellPathCellIdMax = 83;
+export const revealCellPathCellIdMax = 999999;
 
 
 
@@ -309,9 +325,10 @@ export const RevealCellParams = zod.object({
 
 export const revealCellResponseUserOneChancesMin = 0;
 
-export const revealCellResponseCellsItemIdMin = 0;
-export const revealCellResponseCellsItemIdMax = 83;
+export const revealCellResponseCellCountMax = 1000000;
 
+export const revealCellResponseMyCellCountMin = 0;
+export const revealCellResponseMyCellCountMax = 1000000;
 
 export const revealCellResponsePacksItemIdMax = 64;
 
@@ -320,7 +337,7 @@ export const revealCellResponsePacksItemIdMax = 64;
 
 
 export const revealCellResponseOrderOneCellIdMin = 0;
-export const revealCellResponseOrderOneCellIdMax = 83;
+export const revealCellResponseOrderOneCellIdMax = 999999;
 
 
 
@@ -332,21 +349,8 @@ export const RevealCellResponse = zod.object({
   "chances": zod.number().int().min(revealCellResponseUserOneChancesMin),
   "hasPassword": zod.boolean()
 }),zod.null()]),
-  "cells": zod.array(zod.object({
-  "id": zod.number().int().min(revealCellResponseCellsItemIdMin).max(revealCellResponseCellsItemIdMax),
-  "phase": zod.enum(['closed', 'reserved', 'open']),
-  "isMine": zod.boolean(),
-  "redeemed": zod.boolean(),
-  "redemptionStatus": zod.union([zod.literal('requested'),zod.literal('under_review'),zod.literal('approved'),zod.literal('rejected'),zod.literal('cancelled'),zod.literal('processing'),zod.literal('redeemed'),zod.literal(null)]).nullable(),
-  "item": zod.union([zod.object({
-  "id": zod.number().int().min(1),
-  "type": zod.enum(['pix', 'image']),
-  "name": zod.string(),
-  "valueCents": zod.number().int().nullable(),
-  "imageUrl": zod.string().nullable()
-}),zod.null()]),
-  "reservedUntil": zod.coerce.date().nullable()
-})),
+  "cellCount": zod.number().int().min(1).max(revealCellResponseCellCountMax),
+  "myCellCount": zod.number().int().min(revealCellResponseMyCellCountMin).max(revealCellResponseMyCellCountMax),
   "packs": zod.array(zod.object({
   "id": zod.string().min(1).max(revealCellResponsePacksItemIdMax),
   "n": zod.number().int().min(1),
@@ -375,7 +379,7 @@ export const RevealCellResponse = zod.object({
 export const createOrderBodyPackIdMax = 64;
 
 export const createOrderBodyCellIdMin = 0;
-export const createOrderBodyCellIdMax = 83;
+export const createOrderBodyCellIdMax = 999999;
 
 
 
@@ -386,9 +390,10 @@ export const CreateOrderBody = zod.object({
 
 export const createOrderResponseUserOneChancesMin = 0;
 
-export const createOrderResponseCellsItemIdMin = 0;
-export const createOrderResponseCellsItemIdMax = 83;
+export const createOrderResponseCellCountMax = 1000000;
 
+export const createOrderResponseMyCellCountMin = 0;
+export const createOrderResponseMyCellCountMax = 1000000;
 
 export const createOrderResponsePacksItemIdMax = 64;
 
@@ -397,7 +402,7 @@ export const createOrderResponsePacksItemIdMax = 64;
 
 
 export const createOrderResponseOrderOneCellIdMin = 0;
-export const createOrderResponseOrderOneCellIdMax = 83;
+export const createOrderResponseOrderOneCellIdMax = 999999;
 
 
 
@@ -409,21 +414,8 @@ export const CreateOrderResponse = zod.object({
   "chances": zod.number().int().min(createOrderResponseUserOneChancesMin),
   "hasPassword": zod.boolean()
 }),zod.null()]),
-  "cells": zod.array(zod.object({
-  "id": zod.number().int().min(createOrderResponseCellsItemIdMin).max(createOrderResponseCellsItemIdMax),
-  "phase": zod.enum(['closed', 'reserved', 'open']),
-  "isMine": zod.boolean(),
-  "redeemed": zod.boolean(),
-  "redemptionStatus": zod.union([zod.literal('requested'),zod.literal('under_review'),zod.literal('approved'),zod.literal('rejected'),zod.literal('cancelled'),zod.literal('processing'),zod.literal('redeemed'),zod.literal(null)]).nullable(),
-  "item": zod.union([zod.object({
-  "id": zod.number().int().min(1),
-  "type": zod.enum(['pix', 'image']),
-  "name": zod.string(),
-  "valueCents": zod.number().int().nullable(),
-  "imageUrl": zod.string().nullable()
-}),zod.null()]),
-  "reservedUntil": zod.coerce.date().nullable()
-})),
+  "cellCount": zod.number().int().min(1).max(createOrderResponseCellCountMax),
+  "myCellCount": zod.number().int().min(createOrderResponseMyCellCountMin).max(createOrderResponseMyCellCountMax),
   "packs": zod.array(zod.object({
   "id": zod.string().min(1).max(createOrderResponsePacksItemIdMax),
   "n": zod.number().int().min(1),
@@ -455,9 +447,10 @@ export const RefreshOrderPaymentParams = zod.object({
 
 export const refreshOrderPaymentResponseUserOneChancesMin = 0;
 
-export const refreshOrderPaymentResponseCellsItemIdMin = 0;
-export const refreshOrderPaymentResponseCellsItemIdMax = 83;
+export const refreshOrderPaymentResponseCellCountMax = 1000000;
 
+export const refreshOrderPaymentResponseMyCellCountMin = 0;
+export const refreshOrderPaymentResponseMyCellCountMax = 1000000;
 
 export const refreshOrderPaymentResponsePacksItemIdMax = 64;
 
@@ -466,7 +459,7 @@ export const refreshOrderPaymentResponsePacksItemIdMax = 64;
 
 
 export const refreshOrderPaymentResponseOrderOneCellIdMin = 0;
-export const refreshOrderPaymentResponseOrderOneCellIdMax = 83;
+export const refreshOrderPaymentResponseOrderOneCellIdMax = 999999;
 
 
 
@@ -478,21 +471,8 @@ export const RefreshOrderPaymentResponse = zod.object({
   "chances": zod.number().int().min(refreshOrderPaymentResponseUserOneChancesMin),
   "hasPassword": zod.boolean()
 }),zod.null()]),
-  "cells": zod.array(zod.object({
-  "id": zod.number().int().min(refreshOrderPaymentResponseCellsItemIdMin).max(refreshOrderPaymentResponseCellsItemIdMax),
-  "phase": zod.enum(['closed', 'reserved', 'open']),
-  "isMine": zod.boolean(),
-  "redeemed": zod.boolean(),
-  "redemptionStatus": zod.union([zod.literal('requested'),zod.literal('under_review'),zod.literal('approved'),zod.literal('rejected'),zod.literal('cancelled'),zod.literal('processing'),zod.literal('redeemed'),zod.literal(null)]).nullable(),
-  "item": zod.union([zod.object({
-  "id": zod.number().int().min(1),
-  "type": zod.enum(['pix', 'image']),
-  "name": zod.string(),
-  "valueCents": zod.number().int().nullable(),
-  "imageUrl": zod.string().nullable()
-}),zod.null()]),
-  "reservedUntil": zod.coerce.date().nullable()
-})),
+  "cellCount": zod.number().int().min(1).max(refreshOrderPaymentResponseCellCountMax),
+  "myCellCount": zod.number().int().min(refreshOrderPaymentResponseMyCellCountMin).max(refreshOrderPaymentResponseMyCellCountMax),
   "packs": zod.array(zod.object({
   "id": zod.string().min(1).max(refreshOrderPaymentResponsePacksItemIdMax),
   "n": zod.number().int().min(1),
@@ -524,9 +504,10 @@ export const CancelOrderPaymentParams = zod.object({
 
 export const cancelOrderPaymentResponseUserOneChancesMin = 0;
 
-export const cancelOrderPaymentResponseCellsItemIdMin = 0;
-export const cancelOrderPaymentResponseCellsItemIdMax = 83;
+export const cancelOrderPaymentResponseCellCountMax = 1000000;
 
+export const cancelOrderPaymentResponseMyCellCountMin = 0;
+export const cancelOrderPaymentResponseMyCellCountMax = 1000000;
 
 export const cancelOrderPaymentResponsePacksItemIdMax = 64;
 
@@ -535,7 +516,7 @@ export const cancelOrderPaymentResponsePacksItemIdMax = 64;
 
 
 export const cancelOrderPaymentResponseOrderOneCellIdMin = 0;
-export const cancelOrderPaymentResponseOrderOneCellIdMax = 83;
+export const cancelOrderPaymentResponseOrderOneCellIdMax = 999999;
 
 
 
@@ -547,21 +528,8 @@ export const CancelOrderPaymentResponse = zod.object({
   "chances": zod.number().int().min(cancelOrderPaymentResponseUserOneChancesMin),
   "hasPassword": zod.boolean()
 }),zod.null()]),
-  "cells": zod.array(zod.object({
-  "id": zod.number().int().min(cancelOrderPaymentResponseCellsItemIdMin).max(cancelOrderPaymentResponseCellsItemIdMax),
-  "phase": zod.enum(['closed', 'reserved', 'open']),
-  "isMine": zod.boolean(),
-  "redeemed": zod.boolean(),
-  "redemptionStatus": zod.union([zod.literal('requested'),zod.literal('under_review'),zod.literal('approved'),zod.literal('rejected'),zod.literal('cancelled'),zod.literal('processing'),zod.literal('redeemed'),zod.literal(null)]).nullable(),
-  "item": zod.union([zod.object({
-  "id": zod.number().int().min(1),
-  "type": zod.enum(['pix', 'image']),
-  "name": zod.string(),
-  "valueCents": zod.number().int().nullable(),
-  "imageUrl": zod.string().nullable()
-}),zod.null()]),
-  "reservedUntil": zod.coerce.date().nullable()
-})),
+  "cellCount": zod.number().int().min(1).max(cancelOrderPaymentResponseCellCountMax),
+  "myCellCount": zod.number().int().min(cancelOrderPaymentResponseMyCellCountMin).max(cancelOrderPaymentResponseMyCellCountMax),
   "packs": zod.array(zod.object({
   "id": zod.string().min(1).max(cancelOrderPaymentResponsePacksItemIdMax),
   "n": zod.number().int().min(1),
@@ -593,9 +561,10 @@ export const SimulateOrderPaymentParams = zod.object({
 
 export const simulateOrderPaymentResponseUserOneChancesMin = 0;
 
-export const simulateOrderPaymentResponseCellsItemIdMin = 0;
-export const simulateOrderPaymentResponseCellsItemIdMax = 83;
+export const simulateOrderPaymentResponseCellCountMax = 1000000;
 
+export const simulateOrderPaymentResponseMyCellCountMin = 0;
+export const simulateOrderPaymentResponseMyCellCountMax = 1000000;
 
 export const simulateOrderPaymentResponsePacksItemIdMax = 64;
 
@@ -604,7 +573,7 @@ export const simulateOrderPaymentResponsePacksItemIdMax = 64;
 
 
 export const simulateOrderPaymentResponseOrderOneCellIdMin = 0;
-export const simulateOrderPaymentResponseOrderOneCellIdMax = 83;
+export const simulateOrderPaymentResponseOrderOneCellIdMax = 999999;
 
 
 
@@ -616,21 +585,8 @@ export const SimulateOrderPaymentResponse = zod.object({
   "chances": zod.number().int().min(simulateOrderPaymentResponseUserOneChancesMin),
   "hasPassword": zod.boolean()
 }),zod.null()]),
-  "cells": zod.array(zod.object({
-  "id": zod.number().int().min(simulateOrderPaymentResponseCellsItemIdMin).max(simulateOrderPaymentResponseCellsItemIdMax),
-  "phase": zod.enum(['closed', 'reserved', 'open']),
-  "isMine": zod.boolean(),
-  "redeemed": zod.boolean(),
-  "redemptionStatus": zod.union([zod.literal('requested'),zod.literal('under_review'),zod.literal('approved'),zod.literal('rejected'),zod.literal('cancelled'),zod.literal('processing'),zod.literal('redeemed'),zod.literal(null)]).nullable(),
-  "item": zod.union([zod.object({
-  "id": zod.number().int().min(1),
-  "type": zod.enum(['pix', 'image']),
-  "name": zod.string(),
-  "valueCents": zod.number().int().nullable(),
-  "imageUrl": zod.string().nullable()
-}),zod.null()]),
-  "reservedUntil": zod.coerce.date().nullable()
-})),
+  "cellCount": zod.number().int().min(1).max(simulateOrderPaymentResponseCellCountMax),
+  "myCellCount": zod.number().int().min(simulateOrderPaymentResponseMyCellCountMin).max(simulateOrderPaymentResponseMyCellCountMax),
   "packs": zod.array(zod.object({
   "id": zod.string().min(1).max(simulateOrderPaymentResponsePacksItemIdMax),
   "n": zod.number().int().min(1),
@@ -657,7 +613,7 @@ export const SimulateOrderPaymentResponse = zod.object({
  * @summary Create a redemption request for an owned cell
  */
 export const redeemCellBodyCellIdMin = 0;
-export const redeemCellBodyCellIdMax = 83;
+export const redeemCellBodyCellIdMax = 999999;
 
 export const redeemCellBodyPixKeyMax = 254;
 
@@ -688,7 +644,7 @@ export const RedeemCellResponse = zod.object({
  * @summary Cancel an eligible redemption request owned by the current user
  */
 export const cancelCellRedemptionPathCellIdMin = 0;
-export const cancelCellRedemptionPathCellIdMax = 83;
+export const cancelCellRedemptionPathCellIdMax = 999999;
 
 
 

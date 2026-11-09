@@ -68,6 +68,37 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RevelaStateResponse"
+  /revela/cells:
+    get:
+      operationId: getRevelaCells
+      tags: [revela]
+      summary: Read a bounded window of cells
+      parameters:
+        - name: view
+          in: query
+          required: false
+          schema: { type: string, enum: [all, mine], default: all }
+        - name: start
+          in: query
+          required: false
+          schema: { type: integer, minimum: 0, maximum: 999999, default: 0 }
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 500, default: 120 }
+      responses:
+        "200":
+          description: A bounded range of cells
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RevelaCellsResponse"
+        "400":
+          description: Invalid cell window
+        "401":
+          description: Session required for the personal cell view
+        "503":
+          description: The cell board is not fully seeded
   /auth/register:
     post:
       operationId: registerAccount
@@ -167,7 +198,7 @@ paths:
           schema:
             type: integer
             minimum: 0
-            maximum: 83
+            maximum: 999999
       responses:
         "200":
           description: Updated state after revealing a cell
@@ -318,7 +349,7 @@ paths:
           schema:
             type: integer
             minimum: 0
-            maximum: 83
+            maximum: 999999
       responses:
         "200":
           description: Redemption request cancelled
@@ -361,7 +392,7 @@ components:
       type: object
       required: [id, phase, isMine, redeemed, redemptionStatus, item, reservedUntil]
       properties:
-        id: { type: integer, minimum: 0, maximum: 83 }
+        id: { type: integer, minimum: 0, maximum: 999999 }
         phase: { type: string, enum: [closed, reserved, open] }
         isMine: { type: boolean }
         redeemed: { type: boolean }
@@ -373,6 +404,15 @@ components:
             - $ref: "#/components/schemas/CellItem"
             - type: "null"
         reservedUntil: { type: [string, "null"], format: date-time }
+    RevelaCellsResponse:
+      type: object
+      required: [start, total, cells]
+      properties:
+        start: { type: integer, minimum: 0, maximum: 999999 }
+        total: { type: integer, minimum: 0, maximum: 1000000 }
+        cells:
+          type: array
+          items: { $ref: "#/components/schemas/CellState" }
     Pack:
       type: object
       required: [n, priceCents]
@@ -392,22 +432,21 @@ components:
       properties:
         id: { type: string, format: uuid }
         pack: { $ref: "#/components/schemas/Pack" }
-        cellId: { type: [integer, "null"], minimum: 0, maximum: 83 }
+        cellId: { type: [integer, "null"], minimum: 0, maximum: 999999 }
         status: { type: string, enum: [pending, paid, expired] }
         payload: { type: string }
         createdAt: { type: string, format: date-time }
         expiresAt: { type: string, format: date-time }
     RevelaStateResponse:
       type: object
-      required: [user, cells, packs, order, serverTime, testPaymentsEnabled]
+      required: [user, cellCount, myCellCount, packs, order, serverTime, testPaymentsEnabled]
       properties:
         user:
           oneOf:
             - $ref: "#/components/schemas/UserSummary"
             - type: "null"
-        cells:
-          type: array
-          items: { $ref: "#/components/schemas/CellState" }
+        cellCount: { type: integer, minimum: 1, maximum: 1000000 }
+        myCellCount: { type: integer, minimum: 0, maximum: 1000000 }
         packs:
           type: array
           items: { $ref: "#/components/schemas/ChancePlan" }
@@ -442,12 +481,12 @@ components:
       required: [packId]
       properties:
         packId: { type: string, minLength: 1, maxLength: 64 }
-        cellId: { type: [integer, "null"], minimum: 0, maximum: 83 }
+        cellId: { type: [integer, "null"], minimum: 0, maximum: 999999 }
     RedeemCellInput:
       type: object
       required: [cellId, keyType, pixKey, holderCpf]
       properties:
-        cellId: { type: integer, minimum: 0, maximum: 83 }
+        cellId: { type: integer, minimum: 0, maximum: 999999 }
         keyType: { type: string, enum: [cpf, phone, email, evp] }
         pixKey: { type: string, minLength: 1, maxLength: 254 }
         holderCpf: { type: string, minLength: 11, maxLength: 14 }

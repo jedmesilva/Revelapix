@@ -5,14 +5,22 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-import type { CellState } from './cellState';
 import type { ChancePlan } from './chancePlan';
 import type { PixOrder } from './pixOrder';
 import type { UserSummary } from './userSummary';
 
 export interface RevelaStateResponse {
   user: UserSummary | null;
-  cells: CellState[];
+  /**
+     * @minimum 1
+     * @maximum 1000000
+     */
+  cellCount: number;
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
+  myCellCount: number;
   packs: ChancePlan[];
   order: PixOrder | null;
   serverTime: Date;
