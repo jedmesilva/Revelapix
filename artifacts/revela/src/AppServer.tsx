@@ -69,6 +69,7 @@ function messageFrom(error: unknown): string {
 function AppServer() {
   const [snapshot, setSnapshot] = useState<RevelaStateResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initialGridReady, setInitialGridReady] = useState(false);
   const [loadError, setLoadError] = useState('');
   const [serverOffset, setServerOffset] = useState(0);
   const [cellsRevision, setCellsRevision] = useState(0);
@@ -109,6 +110,7 @@ function AppServer() {
   const [reducedMotion, setReducedMotion] = useState(() => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false);
   const [sparkId, setSparkId] = useState<number | null>(null);
   const [revealingCellId, setRevealingCellId] = useState<number | null>(null);
+  const onInitialWindowSettled = useCallback(() => setInitialGridReady(true), []);
   const lastExpiryRefresh = useRef<string | null>(null);
   const lastPaidOrderClose = useRef<string | null>(null);
   const revealInFlight = useRef(false);
@@ -120,6 +122,11 @@ function AppServer() {
   const serverNow = tick + serverOffset;
   const left = order ? Math.max(0, Date.parse(order.expiresAt) - serverNow) : 0;
   const cellCount = snapshot?.myCellCount ?? 0;
+  const initialGridLoading = Boolean(
+    snapshot
+    && !(view === 'mine' && cellCount === 0)
+    && !initialGridReady,
+  );
   const statusLabel = order?.status === 'paid'
     ? 'Pagamento confirmado'
     : order?.status === 'expired'
@@ -589,13 +596,13 @@ function AppServer() {
       <h1>Minhas células</h1><span className="vcount" data-testid="count-my-cells">{cellCount === 1 ? '1 célula' : `${cellCount} células`}</span>
     </div></div>}
     <main className="scroll">
-      {loading && <div className="empty" role="status"><p className="sub">Carregando…</p></div>}
+      {(loading || initialGridLoading) && <div className="empty" role="status"><p className="sub">Carregando…</p></div>}
       {!loading && !snapshot && <div className="empty"><p className="sub">Não foi possível carregar as células.</p><button className="btn" type="button" onClick={() => refreshState().catch(error => setLoadError(messageFrom(error)))}>Tentar novamente</button></div>}
       {!loading && snapshot && view === 'mine' && cellCount === 0 && <div className="empty" data-testid="empty-my-cells">
         <p className="sub">Você ainda não revelou nenhuma célula.</p>
         <button className="btn" type="button" onClick={() => routeTo('all')} data-testid="button-see-all">Ver todas as células</button>
       </div>}
-      {!loading && snapshot && !(view === 'mine' && cellCount === 0) && <CellGrid totalCount={view === 'mine' ? cellCount : snapshot.cellCount} refreshVersion={cellsRevision} view={view} reducedMotion={reducedMotion} sparkId={sparkId} revealingCellId={revealingCellId} onCell={onCell} onRedeem={openRedeem} onCancelRedemption={onCancelRedemption}/>}
+      {!loading && snapshot && !(view === 'mine' && cellCount === 0) && <CellGrid totalCount={view === 'mine' ? cellCount : snapshot.cellCount} refreshVersion={cellsRevision} view={view} suppressInitialLoading={initialGridLoading} onInitialWindowSettled={onInitialWindowSettled} reducedMotion={reducedMotion} sparkId={sparkId} revealingCellId={revealingCellId} onCell={onCell} onRedeem={openRedeem} onCancelRedemption={onCancelRedemption}/>}
     </main>
 
     <Modal open={dialog === 'auth'} title={authMode === 'up' ? 'Criar conta' : 'Entrar'} onClose={closeDialog} testId="dialog-auth">

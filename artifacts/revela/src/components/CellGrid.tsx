@@ -17,6 +17,8 @@ type Props = {
   totalCount: number;
   refreshVersion: number;
   view: "all" | "mine";
+  suppressInitialLoading: boolean;
+  onInitialWindowSettled: () => void;
   reducedMotion: boolean;
   sparkId: number | null;
   revealingCellId: number | null;
@@ -66,6 +68,8 @@ export function CellGrid({
   totalCount,
   refreshVersion,
   view,
+  suppressInitialLoading,
+  onInitialWindowSettled,
   reducedMotion,
   sparkId,
   revealingCellId,
@@ -102,6 +106,7 @@ export function CellGrid({
       setWindowError(false);
       setWindowLoading(false);
       loadingRef.current = false;
+      onInitialWindowSettled();
       return;
     }
 
@@ -121,13 +126,15 @@ export function CellGrid({
       setWindowStart(result.start);
       setWindowLoading(false);
       loadingRef.current = false;
+      onInitialWindowSettled();
     } catch {
       if (requestId !== requestIdRef.current) return;
       setWindowError(true);
       setWindowLoading(false);
       loadingRef.current = false;
+      onInitialWindowSettled();
     }
-  }, [totalCount, view]);
+  }, [onInitialWindowSettled, totalCount, view]);
 
   useLayoutEffect(() => {
     if (!gridRef.current) return;
@@ -306,8 +313,8 @@ export function CellGrid({
   };
 
   return <>
-    {windowLoading && cells.length === 0 && <div className="empty" role="status">
-      <p className="sub">Carregando células…</p>
+    {windowLoading && cells.length === 0 && !suppressInitialLoading && <div className="empty" role="status">
+      <p className="sub">Carregando…</p>
     </div>}
     {windowError && <div className="empty" role="alert">
       <p className="sub">Não foi possível carregar as células.</p>

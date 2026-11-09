@@ -7,3 +7,4 @@
 - [Autenticação somente por email](email-only-auth.md) — mantenha o Google OAuth desativado e não restaure a opção sem pedido explícito.
 - [Mensagens para usuários](user-facing-copy.md) — evite detalhes técnicos e decisões internas; não exponha numeração de células que usuários não veem.
 - [Erros de cobrança Efí](efi-charge-errors.md) — cobrança Pix inexistente pode retornar HTTP 400 com `cobranca_nao_encontrada`; expire só após o prazo local.
+- [Carregamento inicial da grade](initial-loading.md) — mantenha a página de células separada das atualizações de estado, com um único indicador inicial.
