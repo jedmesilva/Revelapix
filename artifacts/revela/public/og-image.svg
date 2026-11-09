@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" fill="none">
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#17171B"/>
+      <stop offset="1" stop-color="#0B0B0D"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientTransform="matrix(0 360 -430 0 964 302)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6FDCC9" stop-opacity=".19"/>
+      <stop offset="1" stop-color="#6FDCC9" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="tile" x1="0" y1="0" x2="84" y2="84" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#232329"/>
+      <stop offset="1" stop-color="#19191D"/>
+    </linearGradient>
+    <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse">
+      <path d="M48 0H0V48" stroke="#FFF" stroke-opacity=".025"/>
+    </pattern>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#background)"/>
+  <rect width="1200" height="630" fill="url(#grid)"/>
+  <ellipse cx="966" cy="314" rx="410" ry="345" fill="url(#glow)"/>
+  <path d="M0 532C245 492 469 534 705 630H0V532Z" fill="#6FDCC9" fill-opacity=".035"/>
+
+  <g transform="translate(76 72)">
+    <rect width="52" height="52" rx="15" fill="#6FDCC9"/>
+    <path d="M15 9H37A6 6 0 0 1 43 15V37A6 6 0 0 1 37 43H15A6 6 0 0 1 9 37V15A6 6 0 0 1 15 9Z" fill="#0E0E10" fill-opacity=".11"/>
+    <path d="M15 13H35L13 35V15A2 2 0 0 1 15 13Z" fill="#0E0E10" fill-opacity=".75"/>
+    <text x="70" y="36" fill="#ECECEE" font-family="DejaVu Sans, Arial, sans-serif" font-size="30" font-weight="700" letter-spacing="-.7">Revelapix</text>
+  </g>
+
+  <text x="78" y="231" fill="#6FDCC9" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="700" letter-spacing="4">REVELAPIX</text>
+  <text x="76" y="315" fill="#F4F4F5" font-family="DejaVu Sans, Arial, sans-serif" font-size="56" font-weight="700" letter-spacing="-2.2">Descubra o que há</text>
+  <text x="76" y="386" fill="#F4F4F5" font-family="DejaVu Sans, Arial, sans-serif" font-size="56" font-weight="700" letter-spacing="-2.2">por trás de cada</text>
+  <text x="76" y="457" fill="#6FDCC9" font-family="DejaVu Sans, Arial, sans-serif" font-size="56" font-weight="700" letter-spacing="-2.2">célula.</text>
+  <path d="M78 505H126" stroke="#6FDCC9" stroke-width="3" stroke-linecap="round"/>
+  <text x="78" y="566" fill="#A8A8B0" font-family="DejaVu Sans, Arial, sans-serif" font-size="18" font-weight="500">revelapix.com.br</text>
+
+  <g stroke="#FFFFFF" stroke-opacity=".09">
+    <rect x="728.5" y="148.5" width="84" height="84" rx="20" fill="url(#tile)"/>
+    <rect x="832.5" y="148.5" width="84" height="84" rx="20" fill="url(#tile)"/>
+    <rect x="936.5" y="148.5" width="84" height="84" rx="20" fill="url(#tile)"/>
+    <rect x="1040.5" y="148.5" width="84" height="84" rx="20" fill="url(#tile)"/>
+    <rect x="728.5" y="252.5" width="84" height="84" rx="20" fill="url(#tile)"/>
+    <rect x="832.5" y="252.5" width="84" height="84" rx="20" fill="#6FDCC9" stroke="#6FDCC9"/>
+    <rect x="936.5" y="252.5" width="84" height="84" rx="20" fill="url(#tile)"/>
+    <rect x="1040.5" y="252.5" width="84" height="84" rx="20" fill="url(#tile)"/>
+    <rect x="728.5" y="356.5" width="84" height="84" rx="20" fill="url(#tile)"/>
+    <rect x="832.5" y="356.5" width="84" height="84" rx="20" fill="url(#tile)"/>
+    <rect x="936.5" y="356.5" width="84" height="84" rx="20" fill="url(#tile)"/>
+    <rect x="1040.5" y="356.5" width="84" height="84" rx="20" fill="url(#tile)"/>
+  </g>
+
+  <g opacity=".7" stroke="#6FDCC9" stroke-width="2" stroke-linecap="round">
+    <path d="M770 179V202M758.5 190.5H781.5"/>
+    <path d="M978 179V202M966.5 190.5H989.5"/>
+    <path d="M1082 387V410M1070.5 398.5H1093.5"/>
+    <path d="M770 283V306M758.5 294.5H781.5"/>
+    <path d="M874 387V410M862.5 398.5H885.5"/>
+    <path d="M978 387V410M966.5 398.5H989.5"/>
+  </g>
+
+  <g transform="translate(854 274)" stroke="#0E2520" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 35V20H40V35"/>
+    <path d="M16 20H45V42H16V20Z"/>
+    <path d="M30.5 20V42"/>
+    <path d="M30.5 20C23 20 20 16.5 20 13.5C20 11 22 9 24.5 9C28 9 30.5 13 30.5 20Z"/>
+    <path d="M30.5 20C38 20 41 16.5 41 13.5C41 11 39 9 36.5 9C33 9 30.5 13 30.5 20Z"/>
+  </g>
+</svg>
