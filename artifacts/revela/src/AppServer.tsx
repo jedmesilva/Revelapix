@@ -27,7 +27,7 @@ import {
 import { brl, digits, formatTime, maskCpf, maskPhone, plural, redemptionStatusLabels } from './domain/revela';
 
 type View = 'all' | 'mine';
-type Dialog = 'none' | 'auth' | 'packs' | 'pix' | 'account' | 'redeem';
+type Dialog = 'none' | 'auth' | 'packs' | 'pix' | 'pix-option-confirm' | 'account' | 'redeem';
 type KeyOption = { id: RedeemCellInputKeyType; label: string; ph: string; mode: string };
 const KEY_OPTIONS: KeyOption[] = [
   { id: 'cpf', label: 'CPF', ph: '000.000.000-00', mode: 'numeric' },
@@ -383,8 +383,11 @@ function AppServer() {
 
   const cancelAndChooseOtherPack = async () => {
     const pendingOrder = snapshot?.order;
-    if (!pendingOrder || pendingOrder.status !== 'pending' || cancelingOrder) return;
-    if (!window.confirm('Cancelar este Pix e escolher outra opção? O código atual deixará de funcionar.')) return;
+    if (cancelingOrder) return;
+    if (!pendingOrder || pendingOrder.status !== 'pending') {
+      setDialog(pendingOrder ? 'pix' : 'none');
+      return;
+    }
 
     setCancelingOrder(true);
     setPaymentStatusError('');
@@ -403,8 +406,10 @@ function AppServer() {
         return;
       }
       setPaymentStatusError('O Pix ainda não foi cancelado. Aguarde a verificação antes de iniciar outro pagamento.');
+      setDialog('pix');
     } catch (error) {
       setPaymentStatusError(messageFrom(error));
+      setDialog('pix');
     } finally {
       setCancelingOrder(false);
     }
@@ -664,13 +669,42 @@ function AppServer() {
             className="link pix-cancel"
             type="button"
             disabled={cancelingOrder}
-            onClick={cancelAndChooseOtherPack}
+            onClick={() => setDialog('pix-option-confirm')}
             data-testid="button-choose-other-pack"
           >
             {cancelingOrder ? 'Cancelando Pix…' : 'Escolher outra opção'}
           </button>}
         </div>
       </>}
+    </Modal>
+
+    <Modal
+      open={dialog === 'pix-option-confirm'}
+      title="Trocar opção de pagamento?"
+      onClose={() => { if (!cancelingOrder) setDialog('pix'); }}
+      testId="dialog-pix-option-confirm"
+    >
+      <div className="form">
+        <p className="sub">O Pix atual será cancelado e o código deixará de funcionar.</p>
+        <button
+          className="btn full ghost"
+          type="button"
+          disabled={cancelingOrder}
+          onClick={() => setDialog('pix')}
+          data-testid="button-keep-current-pix"
+        >
+          Manter este Pix
+        </button>
+        <button
+          className="btn full"
+          type="button"
+          disabled={cancelingOrder}
+          onClick={cancelAndChooseOtherPack}
+          data-testid="button-confirm-pix-switch"
+        >
+          {cancelingOrder ? 'Cancelando Pix…' : 'Cancelar Pix e escolher outra opção'}
+        </button>
+      </div>
     </Modal>
 
     <Modal open={dialog === 'account'} title={accountPage === 'home' ? 'Minha conta' : user?.hasPassword ? 'Alterar senha' : 'Criar senha'} onClose={closeDialog} testId="dialog-account">
