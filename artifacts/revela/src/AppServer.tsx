@@ -91,7 +91,7 @@ function AppServer() {
   const [cancelRedemptionBusy, setCancelRedemptionBusy] = useState(false);
   const [cancelRedemptionError, setCancelRedemptionError] = useState('');
   const [tick, setTick] = useState(Date.now());
-  const [copyLabel, setCopyLabel] = useState('Copiar código Pix');
+  const [copyLabel, setCopyLabel] = useState('Copiar Pix Copia e Cola');
   const [paymentStatusError, setPaymentStatusError] = useState('');
   const [redeemCellId, setRedeemCellId] = useState<number | null>(null);
   const [redeemType, setRedeemType] = useState<RedeemCellInputKeyType>('cpf');
@@ -573,8 +573,8 @@ function AppServer() {
       try { document.execCommand('copy'); } catch { /* clipboard unavailable */ }
       area.remove();
     }
-    setCopyLabel('Código copiado');
-    window.setTimeout(() => setCopyLabel('Copiar código Pix'), 1500);
+    setCopyLabel('Pix Copia e Cola copiado');
+    window.setTimeout(() => setCopyLabel('Copiar Pix Copia e Cola'), 1500);
   };
 
   return <div className="app-shell">
@@ -693,8 +693,21 @@ function AppServer() {
               : 'Código Pix indisponível. Tente verificar o pedido novamente.'}
           />
           <div className="clock"><Clock3 className="icon"/><span data-testid="value-pix-timer">{order.status === 'paid' ? 'pago' : order.status === 'expired' ? '00:00' : formatTime(left)}</span><div className="bar"><i style={{ width: `${order.status === 'pending' ? progress : 0}%` }}/></div></div>
+          {order.status === 'pending' && left > 0 && order.payload.trim() && <label className="pix-copy-code">
+            Pix Copia e Cola
+            <textarea
+              className="pix-copy-code-value"
+              value={order.payload}
+              readOnly
+              rows={3}
+              spellCheck={false}
+              aria-label="Código Pix Copia e Cola"
+              data-testid="text-pix-copy-paste"
+              onFocus={event => event.currentTarget.select()}
+            />
+          </label>}
           <button className="btn full" id="copy" type="button" disabled={order.status !== 'pending' || left === 0 || !order.payload.trim()} onClick={copyPix} data-testid="button-copy-pix">{left === 0 && order.status === 'pending' ? 'Prazo do Pix encerrado' : copyLabel}</button>
-          {paymentStatusError && <p className="hint" role="status" data-testid="text-payment-check-error">{paymentStatusError}</p>}
+          {paymentStatusError && <p className="hint" id="payment-status-error" role="status" data-testid="text-payment-check-error">{paymentStatusError}</p>}
           <p className="hint" id="hint" data-testid="text-payment-hint">
             {order.status === 'pending' ? left === 0
               ? 'O prazo do Pix terminou, mas ainda não foi possível confirmar o resultado junto à Efí. Não faça outro pagamento até a confirmação.'
