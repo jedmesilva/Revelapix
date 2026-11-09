@@ -13,6 +13,7 @@ import { TopBar } from './components/TopBar';
 import {
   changePassword,
   cancelCellRedemption,
+  cancelOrderPayment,
   createOrder,
   getRevelaState,
   loginAccount,
@@ -83,6 +84,7 @@ function AppServer() {
   const [selectedPackId, setSelectedPackId] = useState<string | null>(null);
   const [packError, setPackError] = useState('');
   const [creatingOrder, setCreatingOrder] = useState(false);
+  const [cancelingOrder, setCancelingOrder] = useState(false);
   const [tick, setTick] = useState(Date.now());
   const [copyLabel, setCopyLabel] = useState('Copiar código Pix');
   const [paymentStatusError, setPaymentStatusError] = useState('');
@@ -183,7 +185,7 @@ function AppServer() {
     };
   }, [order, refreshState]);
   useEffect(() => {
-    if (!order || order.status !== 'pending') {
+    if (!order || order.status !== 'pending' || cancelingOrder) {
       setPaymentStatusError('');
       return;
     }
@@ -216,7 +218,7 @@ function AppServer() {
       window.removeEventListener('focus', checkPayment);
       document.removeEventListener('visibilitychange', checkPayment);
     };
-  }, [order?.id, order?.status]);
+  }, [order?.id, order?.status, cancelingOrder]);
   useEffect(() => {
     if (!order || order.status !== 'paid' || lastPaidOrderClose.current === order.id) return;
     lastPaidOrderClose.current = order.id;
@@ -376,6 +378,35 @@ function AppServer() {
       setPackError(messageFrom(error));
     } finally {
       setCreatingOrder(false);
+    }
+  };
+
+  const cancelAndChooseOtherPack = async () => {
+    const pendingOrder = snapshot?.order;
+    if (!pendingOrder || pendingOrder.status !== 'pending' || cancelingOrder) return;
+    if (!window.confirm('Cancelar este Pix e escolher outro pacote? O código atual deixará de funcionar.')) return;
+
+    setCancelingOrder(true);
+    setPaymentStatusError('');
+    try {
+      const next = await cancelOrderPayment(pendingOrder.id);
+      acceptSnapshot(next);
+      if (next.order?.status === 'paid') {
+        setDialog('pix');
+        return;
+      }
+      if (next.order?.status === 'expired' || !next.order) {
+        setPendingCell(pendingOrder.cellId);
+        setSelectedPackId(null);
+        setPackError('');
+        setDialog('packs');
+        return;
+      }
+      setPaymentStatusError('O Pix ainda não foi cancelado. Aguarde a verificação antes de iniciar outro pagamento.');
+    } catch (error) {
+      setPaymentStatusError(messageFrom(error));
+    } finally {
+      setCancelingOrder(false);
     }
   };
 
@@ -629,6 +660,15 @@ function AppServer() {
               order.status === 'paid' ? (order.cellId !== null ? 'Abrindo sua célula…' : 'Chances adicionadas.') :
               `O Pix expirou${order.cellId !== null ? ' e a célula foi liberada.' : '.'}`}
           </p>
+          {order.status === 'pending' && order.payload.trim() && <button
+            className="link pix-cancel"
+            type="button"
+            disabled={cancelingOrder}
+            onClick={cancelAndChooseOtherPack}
+            data-testid="button-choose-other-pack"
+          >
+            {cancelingOrder ? 'Cancelando Pix…' : 'Escolher outro pacote'}
+          </button>}
         </div>
       </>}
     </Modal>

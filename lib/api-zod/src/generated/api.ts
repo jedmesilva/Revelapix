@@ -516,6 +516,75 @@ export const RefreshOrderPaymentResponse = zod.object({
 
 
 /**
+ * @summary Cancel a pending Efí Pix order
+ */
+export const CancelOrderPaymentParams = zod.object({
+  "orderId": zod.coerce.string().uuid()
+})
+
+export const cancelOrderPaymentResponseUserOneChancesMin = 0;
+
+export const cancelOrderPaymentResponseCellsItemIdMin = 0;
+export const cancelOrderPaymentResponseCellsItemIdMax = 83;
+
+
+export const cancelOrderPaymentResponsePacksItemIdMax = 64;
+
+
+
+
+
+export const cancelOrderPaymentResponseOrderOneCellIdMin = 0;
+export const cancelOrderPaymentResponseOrderOneCellIdMax = 83;
+
+
+
+export const CancelOrderPaymentResponse = zod.object({
+  "user": zod.union([zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "email": zod.string().email(),
+  "chances": zod.number().int().min(cancelOrderPaymentResponseUserOneChancesMin),
+  "hasPassword": zod.boolean()
+}),zod.null()]),
+  "cells": zod.array(zod.object({
+  "id": zod.number().int().min(cancelOrderPaymentResponseCellsItemIdMin).max(cancelOrderPaymentResponseCellsItemIdMax),
+  "phase": zod.enum(['closed', 'reserved', 'open']),
+  "isMine": zod.boolean(),
+  "redeemed": zod.boolean(),
+  "redemptionStatus": zod.union([zod.literal('requested'),zod.literal('under_review'),zod.literal('approved'),zod.literal('rejected'),zod.literal('cancelled'),zod.literal('processing'),zod.literal('redeemed'),zod.literal(null)]).nullable(),
+  "item": zod.union([zod.object({
+  "id": zod.number().int().min(1),
+  "type": zod.enum(['pix', 'image']),
+  "name": zod.string(),
+  "valueCents": zod.number().int().nullable(),
+  "imageUrl": zod.string().nullable()
+}),zod.null()]),
+  "reservedUntil": zod.coerce.date().nullable()
+})),
+  "packs": zod.array(zod.object({
+  "id": zod.string().min(1).max(cancelOrderPaymentResponsePacksItemIdMax),
+  "n": zod.number().int().min(1),
+  "priceCents": zod.number().int().min(1)
+})),
+  "order": zod.union([zod.object({
+  "id": zod.string().uuid(),
+  "pack": zod.object({
+  "n": zod.number().int().min(1),
+  "priceCents": zod.number().int().min(1)
+}),
+  "cellId": zod.number().int().min(cancelOrderPaymentResponseOrderOneCellIdMin).max(cancelOrderPaymentResponseOrderOneCellIdMax).nullable(),
+  "status": zod.enum(['pending', 'paid', 'expired']),
+  "payload": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "expiresAt": zod.coerce.date()
+}),zod.null()]),
+  "serverTime": zod.coerce.date(),
+  "testPaymentsEnabled": zod.boolean()
+})
+
+
+/**
  * @summary Simulate payment for a demonstration order
  */
 export const SimulateOrderPaymentParams = zod.object({

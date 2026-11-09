@@ -184,6 +184,7 @@ button:focus-visible, input:focus-visible, [tabindex="0"]:focus-visible { outlin
 .err { display:flex; align-items:center; gap:10px; margin:0; padding:12px 14px; border-radius:var(--r-md); background:rgba(255,138,138,.1); font-size:14px; color:var(--text); }
 .err .icon { flex-shrink:0; width:16px; height:16px; color:var(--danger); }
 .link { justify-self:center; padding:8px 12px; border:0; border-radius:var(--r-full); background:none; color:var(--accent); font-size:14px; font-weight:600; cursor:pointer; }
+.link:disabled { color:var(--muted); cursor:wait; }
 .info { display:grid; gap:1px; border-radius:var(--r-lg); overflow:hidden; background:var(--line); }
 .info div { display:grid; gap:2px; padding:14px 16px; background:var(--s2); }
 .info small { color:var(--muted); font-size:12px; }

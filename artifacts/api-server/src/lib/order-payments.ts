@@ -32,6 +32,11 @@ function isVerifiedPaidCharge(charge: EfiCharge, txid: string, amountCents: numb
     );
 }
 
+function isMissingEfiChargeError(error: unknown): boolean {
+  return error instanceof EfiApiError
+    && (error.statusCode === 404 || error.code === "cobranca_nao_encontrada");
+}
+
 async function expireEfiOrder(orderId: string, force = false): Promise<void> {
   const now = new Date();
   await db.transaction(async (tx) => {
@@ -59,6 +64,44 @@ async function expireEfiOrder(orderId: string, force = false): Promise<void> {
       ));
     }
   });
+}
+
+async function cancelActiveEfiCharge(
+  orderId: string,
+  txid: string,
+  amountCents: number,
+): Promise<void> {
+  try {
+    await cancelEfiPixCharge(txid);
+  } catch (error) {
+    // Efí may reject a duplicate cancellation or a charge paid just before this request.
+    if (!(error instanceof EfiApiError)) throw error;
+  }
+
+  let finalCharge: EfiCharge;
+  try {
+    finalCharge = await getEfiPixCharge(txid);
+  } catch (error) {
+    if (isMissingEfiChargeError(error)) {
+      await expireEfiOrder(orderId, true);
+      return;
+    }
+    throw error;
+  }
+
+  if (finalCharge.txid !== txid || finalCharge.amountCents !== amountCents) {
+    throw new Error("Efí charge changed while it was being closed.");
+  }
+  if (finalCharge.status === "CONCLUIDA") {
+    if (!isVerifiedPaidCharge(finalCharge, txid, amountCents)) {
+      throw new Error("Efí marked the charge complete without a matching Pix receipt.");
+    }
+    await recordVerifiedEfiPayment(orderId, finalCharge);
+  } else if (EXPIRED_CHARGE_STATUSES.has(finalCharge.status)) {
+    await expireEfiOrder(orderId, true);
+  } else {
+    throw new EfiApiError("Efí did not confirm the Pix cancellation.");
+  }
 }
 
 async function recordVerifiedEfiPayment(orderId: string, charge: EfiCharge): Promise<void> {
@@ -118,6 +161,47 @@ async function recordVerifiedEfiPayment(orderId: string, charge: EfiCharge): Pro
   });
 }
 
+export async function cancelPendingEfiOrder(orderId: string): Promise<void> {
+  const [order] = await db.select().from(ordersTable)
+    .where(eq(ordersTable.id, orderId))
+    .limit(1);
+  if (!order || order.status !== "pending") return;
+  if (!order.providerTxid || !order.pixPayload.trim()) {
+    throw new EfiApiError("The Pix charge is not ready to cancel.");
+  }
+
+  let charge: EfiCharge;
+  try {
+    charge = await getEfiPixCharge(order.providerTxid);
+  } catch (error) {
+    if (isMissingEfiChargeError(error)) {
+      await expireEfiOrder(order.id, true);
+      return;
+    }
+    throw error;
+  }
+
+  if (charge.txid !== order.providerTxid || charge.amountCents !== order.amountCents) {
+    throw new Error("Efí charge does not match the stored order.");
+  }
+  if (charge.status === "CONCLUIDA") {
+    if (!isVerifiedPaidCharge(charge, order.providerTxid, order.amountCents)) {
+      throw new Error("Efí marked the charge complete without a matching Pix receipt.");
+    }
+    await recordVerifiedEfiPayment(order.id, charge);
+    return;
+  }
+  if (EXPIRED_CHARGE_STATUSES.has(charge.status)) {
+    await expireEfiOrder(order.id, true);
+    return;
+  }
+  if (charge.status !== "ATIVA") {
+    throw new EfiApiError("Efí did not confirm that the Pix can be cancelled.");
+  }
+
+  await cancelActiveEfiCharge(order.id, order.providerTxid, order.amountCents);
+}
+
 export async function reconcileEfiOrder(orderId: string): Promise<void> {
   const [order] = await db.select().from(ordersTable)
     .where(and(
@@ -132,14 +216,7 @@ export async function reconcileEfiOrder(orderId: string): Promise<void> {
   try {
     charge = await getEfiPixCharge(order.providerTxid);
   } catch (error) {
-    if (
-      error instanceof EfiApiError
-      && (
-        error.statusCode === 404
-        || error.code === "cobranca_nao_encontrada"
-      )
-      && order.expiresAt <= new Date()
-    ) {
+    if (isMissingEfiChargeError(error) && order.expiresAt <= new Date()) {
       await expireEfiOrder(order.id);
       return;
     }
@@ -175,25 +252,7 @@ export async function reconcileEfiOrder(orderId: string): Promise<void> {
 
   if (order.expiresAt > new Date() || charge.status !== "ATIVA") return;
 
-  try {
-    await cancelEfiPixCharge(order.providerTxid);
-  } catch (error) {
-    // The charge may have expired or been paid between the status check and cancellation.
-    if (!(error instanceof EfiApiError)) throw error;
-  }
-
-  const finalCharge = await getEfiPixCharge(order.providerTxid);
-  if (finalCharge.txid !== order.providerTxid || finalCharge.amountCents !== order.amountCents) {
-    throw new Error("Efí charge changed while it was being closed.");
-  }
-  if (finalCharge.status === "CONCLUIDA") {
-    if (!isVerifiedPaidCharge(finalCharge, order.providerTxid, order.amountCents)) {
-      throw new Error("Efí marked the charge complete without a matching Pix receipt.");
-    }
-    await recordVerifiedEfiPayment(order.id, finalCharge);
-  } else if (EXPIRED_CHARGE_STATUSES.has(finalCharge.status)) {
-      await expireEfiOrder(order.id, true);
-  }
+  await cancelActiveEfiCharge(order.id, order.providerTxid, order.amountCents);
 }
 
 export function startEfiOrderReconciliation(): void {

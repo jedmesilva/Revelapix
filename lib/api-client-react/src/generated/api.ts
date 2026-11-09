@@ -1151,6 +1151,80 @@ export const useRefreshOrderPayment = <TError = ErrorType<void>,
       return useMutation(getRefreshOrderPaymentMutationOptions(options), queryClient);
     }
 
+export const getCancelOrderPaymentUrl = (orderId: string,) => {
+
+
+
+
+  return `/api/orders/${orderId}/cancel`
+}
+
+/**
+ * @summary Cancel a pending Efí Pix order
+ */
+export const cancelOrderPayment = async (orderId: string, options?: Parameters<typeof customFetch>[1]): Promise<RevelaStateResponse> => {
+
+  return customFetch<RevelaStateResponse>(getCancelOrderPaymentUrl(orderId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getCancelOrderPaymentMutationKey = () => ['cancelOrderPayment'] as const;
+
+export const getCancelOrderPaymentMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelOrderPayment>>, TError,CancelOrderPaymentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof cancelOrderPayment>>, TError,CancelOrderPaymentMutationVariables, TContext> => {
+
+const mutationKey = getCancelOrderPaymentMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof cancelOrderPayment>>, CancelOrderPaymentMutationVariables> = (props) => {
+          const {orderId} = props ?? {};
+
+          return  cancelOrderPayment(orderId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CancelOrderPaymentMutationResult = NonNullable<Awaited<ReturnType<typeof cancelOrderPayment>>>
+
+    export type CancelOrderPaymentMutationError = ErrorType<void>
+    export type CancelOrderPaymentMutationVariables = {orderId: string}
+
+    /**
+ * @summary Cancel a pending Efí Pix order
+ */
+export const useCancelOrderPayment = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelOrderPayment>>, TError,CancelOrderPaymentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof cancelOrderPayment>>,
+        TError,
+        CancelOrderPaymentMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCancelOrderPaymentMutationOptions(options), queryClient);
+    }
+
 export const getSimulateOrderPaymentUrl = (orderId: string,) => {
 
 

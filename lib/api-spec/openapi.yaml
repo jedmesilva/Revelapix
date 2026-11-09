@@ -230,6 +230,33 @@ paths:
           description: Order does not belong to the current account
         "503":
           description: Provider status is temporarily unavailable
+  /orders/{orderId}/cancel:
+    post:
+      operationId: cancelOrderPayment
+      tags: [orders]
+      summary: Cancel a pending Efí Pix order
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Current state after verifying the cancellation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RevelaStateResponse"
+        "401":
+          description: Session required
+        "404":
+          description: Order does not belong to the current account
+        "409":
+          description: Pix code is not ready to cancel
+        "503":
+          description: Provider could not confirm cancellation
   /orders/{orderId}/simulate-payment:
     post:
       operationId: simulateOrderPayment

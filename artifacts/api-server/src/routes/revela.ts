@@ -2,6 +2,7 @@ import { randomInt, randomUUID } from "node:crypto";
 import { Router, type IRouter, type Request, type Response } from "express";
 import { and, desc, eq, gt, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
 import {
+  CancelOrderPaymentParams,
   ChangePasswordBody,
   CancelCellRedemptionParams,
   CancelCellRedemptionResponse,
@@ -62,7 +63,7 @@ import {
   EfiApiError,
   getEfiPaymentSetupError,
 } from "../lib/efi-pix";
-import { reconcileEfiOrder } from "../lib/order-payments";
+import { cancelPendingEfiOrder, reconcileEfiOrder } from "../lib/order-payments";
 import {
   ensureBoard,
   expireReservations,
@@ -575,6 +576,59 @@ router.post("/orders/:orderId/refresh", async (req, res): Promise<void> => {
       );
       return;
     }
+  }
+
+  const currentUser = await getSessionUser(req);
+  res.json(GetRevelaStateResponse.parse(await getRevelaState(currentUser)));
+});
+
+router.post("/orders/:orderId/cancel", async (req, res): Promise<void> => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const params = CancelOrderPaymentParams.safeParse(req.params);
+  if (!params.success) {
+    sendError(res, 400, "Pedido inválido.", "INVALID_ORDER");
+    return;
+  }
+
+  const [order] = await db.select({
+    id: ordersTable.id,
+    status: ordersTable.status,
+    providerTxid: ordersTable.providerTxid,
+    pixPayload: ordersTable.pixPayload,
+  })
+    .from(ordersTable)
+    .where(and(
+      eq(ordersTable.id, params.data.orderId),
+      eq(ordersTable.userId, user.id),
+    ))
+    .limit(1);
+  if (!order) {
+    sendError(res, 404, "Pedido não encontrado.", "ORDER_NOT_FOUND");
+    return;
+  }
+
+  if (order.status === "pending" && (!order.providerTxid || !order.pixPayload.trim())) {
+    sendError(
+      res,
+      409,
+      "Este Pix ainda está sendo preparado. Aguarde antes de escolher outro pacote.",
+      "ORDER_PIX_NOT_READY",
+    );
+    return;
+  }
+
+  try {
+    await cancelPendingEfiOrder(order.id);
+  } catch (error) {
+    req.log.warn({ err: error, orderId: order.id }, "Could not confirm Efí Pix cancellation");
+    sendError(
+      res,
+      503,
+      "Não foi possível confirmar o cancelamento. Não inicie outro pagamento enquanto isso.",
+      "ORDER_CANCELLATION_UNCONFIRMED",
+    );
+    return;
   }
 
   const currentUser = await getSessionUser(req);
