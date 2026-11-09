@@ -312,7 +312,7 @@ function AppServer() {
     }
     if (cell.phase !== 'closed') return;
     if (!user) {
-      openAuth('in', 'Entre na sua conta para revelar células.');
+      openAuth('in', 'Entre para revelar células e encontrar um pix');
       return;
     }
     revealInFlight.current = true;
