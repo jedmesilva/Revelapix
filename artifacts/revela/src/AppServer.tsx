@@ -384,7 +384,7 @@ function AppServer() {
   const cancelAndChooseOtherPack = async () => {
     const pendingOrder = snapshot?.order;
     if (!pendingOrder || pendingOrder.status !== 'pending' || cancelingOrder) return;
-    if (!window.confirm('Cancelar este Pix e escolher outro pacote? O código atual deixará de funcionar.')) return;
+    if (!window.confirm('Cancelar este Pix e escolher outra opção? O código atual deixará de funcionar.')) return;
 
     setCancelingOrder(true);
     setPaymentStatusError('');
@@ -667,7 +667,7 @@ function AppServer() {
             onClick={cancelAndChooseOtherPack}
             data-testid="button-choose-other-pack"
           >
-            {cancelingOrder ? 'Cancelando Pix…' : 'Escolher outro pacote'}
+            {cancelingOrder ? 'Cancelando Pix…' : 'Escolher outra opção'}
           </button>}
         </div>
       </>}
