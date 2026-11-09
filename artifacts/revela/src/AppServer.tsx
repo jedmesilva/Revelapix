@@ -91,7 +91,7 @@ function AppServer() {
   const [cancelRedemptionBusy, setCancelRedemptionBusy] = useState(false);
   const [cancelRedemptionError, setCancelRedemptionError] = useState('');
   const [tick, setTick] = useState(Date.now());
-  const [copyLabel, setCopyLabel] = useState('Copiar Pix Copia e Cola');
+  const [copyLabel, setCopyLabel] = useState('Copiar código');
   const [paymentStatusError, setPaymentStatusError] = useState('');
   const [redeemCellId, setRedeemCellId] = useState<number | null>(null);
   const [redeemType, setRedeemType] = useState<RedeemCellInputKeyType>('cpf');
@@ -573,8 +573,8 @@ function AppServer() {
       try { document.execCommand('copy'); } catch { /* clipboard unavailable */ }
       area.remove();
     }
-    setCopyLabel('Pix Copia e Cola copiado');
-    window.setTimeout(() => setCopyLabel('Copiar Pix Copia e Cola'), 1500);
+    setCopyLabel('Código copiado');
+    window.setTimeout(() => setCopyLabel('Copiar código'), 1500);
   };
 
   return <div className="app-shell">
@@ -707,6 +707,18 @@ function AppServer() {
             />
           </label>}
           <button className="btn full" id="copy" type="button" disabled={order.status !== 'pending' || left === 0 || !order.payload.trim()} onClick={copyPix} data-testid="button-copy-pix">{left === 0 && order.status === 'pending' ? 'Prazo do Pix encerrado' : copyLabel}</button>
+          {order.status === 'pending' && left > 0 && order.payload.trim() && <section
+            className="pix-payment-instructions"
+            aria-labelledby="pix-payment-instructions-title"
+            data-testid="pix-payment-instructions"
+          >
+            <h3 id="pix-payment-instructions-title">Como pagar</h3>
+            <ol>
+              <li>Abra o app do seu banco e escolha Pix.</li>
+              <li>Em outro dispositivo, escaneie o QR Code. No mesmo celular, toque em “Copiar código” e escolha “Pix Copia e Cola”.</li>
+              <li>Confira o valor e quem vai receber no app do banco antes de confirmar.</li>
+            </ol>
+          </section>}
           {paymentStatusError && <p className="hint" id="payment-status-error" role="status" data-testid="text-payment-check-error">{paymentStatusError}</p>}
           <p className="hint" id="hint" data-testid="text-payment-hint">
             {order.status === 'pending' ? left === 0

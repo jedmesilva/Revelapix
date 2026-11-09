@@ -11,6 +11,8 @@ Na compra de chances, não chame os planos de “pacotes” nos modais; use “o
 
 Para confirmações, use os diálogos próprios do app, não as janelas nativas do navegador.
 
+Em modais de cobrança Pix, mostre o QR Code e o código Pix Copia e Cola, use o botão “Copiar código” e inclua instruções breves para pagar por QR ou pelo código. Oriente a pessoa a conferir valor e recebedor no app do banco antes de confirmar.
+
 **Why:** o usuário enfatizou que detalhes de implementação não fazem sentido para usuários finais, e que a numeração das células não é visível aos clientes.
 
 **How to apply:** ao alterar textos de carregamento, formulários, erros ou confirmações, descreva a ação ou o resultado de forma direta, sem explicar decisões internas nem expor números de células.
@@ -22,3 +24,7 @@ Para confirmações, use os diálogos próprios do app, não as janelas nativas 
 **Why:** o usuário pediu mais de uma vez que confirmações não usem as caixas nativas do navegador.
 
 **How to apply:** use o componente de diálogo modal do Revelapix para confirmações de ações.
+
+**Why:** o usuário reforçou que o modal de pagamento deve seguir o fluxo familiar de QR Code ou Pix Copia e Cola, com instruções claras para cada opção.
+
+**How to apply:** deixe visível o código da cobrança enquanto ela estiver ativa, mantenha uma ação curta de cópia e esconda dados de pagamento expirados ou concluídos.

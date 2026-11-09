@@ -178,6 +178,10 @@ button:focus-visible, input:focus-visible, [tabindex="0"]:focus-visible { outlin
 .pix-copy-code { display:grid; gap:6px; min-width:0; color:var(--muted); font-size:12px; font-weight:500; }
 .pix-copy-code-value { width:100%; min-width:0; max-height:84px; padding:10px 12px; border:0; border-radius:var(--r-lg); background:var(--s2); color:var(--text); box-shadow:inset 0 0 0 1px var(--line); font:11px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace; overflow:auto; overflow-wrap:anywhere; resize:none; user-select:text; }
 .pix-copy-code-value:focus { outline:none; box-shadow:inset 0 0 0 1.5px var(--accent),0 0 0 4px rgba(111,220,201,.16); }
+.pix-payment-instructions { display:grid; gap:6px; min-width:0; padding:12px 14px; border-radius:var(--r-lg); background:var(--s2); color:var(--muted); font-size:12px; line-height:1.45; }
+.pix-payment-instructions h3 { margin:0; color:var(--text); font-size:13px; font-weight:600; }
+.pix-payment-instructions ol { display:grid; gap:4px; margin:0; padding-left:18px; }
+.pix-payment-instructions li { padding-left:2px; }
 .field { display:grid; gap:8px; color:var(--muted); font-size:13px; font-weight:500; }
 .input { width:100%; height:52px; padding:0 16px; border:0; border-radius:var(--r-lg); background:var(--s2); color:var(--text); box-shadow:inset 0 0 0 1px var(--line); font-size:16px; transition:box-shadow 150ms; }
 .input:focus { outline:none; box-shadow:inset 0 0 0 1.5px var(--accent),0 0 0 4px rgba(111,220,201,.16); }
@@ -255,12 +259,13 @@ button:focus-visible, input:focus-visible, [tabindex="0"]:focus-visible { outlin
   .packs { grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
   .pack { flex-direction:column; align-items:flex-start; justify-content:space-between; gap:20px; min-height:112px; padding:18px; }
   .pack span { font-size:20px; letter-spacing:-.01em; }
-  .pix { grid-template-columns:minmax(0,var(--qr)) minmax(0,1fr); grid-template-rows:repeat(5,auto) minmax(0,1fr) auto; grid-template-areas:"qr status" "qr clock" "qr payload" "qr copy" "qr error" "qr hint" "qr other"; gap:14px 28px; align-items:start; }
+  .pix { grid-template-columns:minmax(0,var(--qr)) minmax(0,1fr); grid-template-rows:repeat(6,auto) minmax(0,1fr) auto; grid-template-areas:"qr status" "qr clock" "qr payload" "qr copy" "qr instructions" "qr error" "qr hint" "qr other"; gap:14px 28px; align-items:start; }
   .status { grid-area:status; }
   .qr { grid-area:qr; justify-self:start; width:100%; }
   .clock { grid-area:clock; }
   .pix-copy-code { grid-area:payload; }
   #copy { grid-area:copy; }
+  .pix-payment-instructions { grid-area:instructions; }
   #payment-status-error { grid-area:error; }
   #hint { grid-area:hint; }
   .pix-cancel { grid-area:other; }
