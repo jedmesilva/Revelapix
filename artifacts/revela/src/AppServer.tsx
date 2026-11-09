@@ -595,7 +595,7 @@ function AppServer() {
     </main>
 
     <Modal open={dialog === 'auth'} title={authMode === 'up' ? 'Criar conta' : 'Entrar'} onClose={closeDialog} testId="dialog-auth">
-      <p className="sub">{authContext || (authMode === 'up' ? 'Crie sua conta para ganhar chances e revelar células.' : 'Entre para ver suas chances e revelar células.')}</p>
+      <p className="sub">{authContext || (authMode === 'up' ? 'Crie sua conta para ganhar chances e revelar células.' : 'Entre para revelar células e encontrar um pix')}</p>
       <form className="form" onSubmit={submitAuth} noValidate>
         {authMode === 'up' && <label className="field">Nome<input className="input" autoComplete="name" value={authName} onChange={e => setAuthName(e.target.value)} data-testid="input-name"/></label>}
         <label className="field">E-mail<input className="input" type="email" autoComplete="email" inputMode="email" value={authEmail} onChange={e => setAuthEmail(e.target.value)} data-testid="input-email"/></label>
